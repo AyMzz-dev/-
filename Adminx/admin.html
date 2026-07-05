@@ -5,7 +5,7 @@
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>管理后台 - 温泉授权系统</title>
+    <title>管理后台 - 小七授权系统</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../static/global.css">
     <link rel="stylesheet" href="../static/frame/layui/css/layui.css">
@@ -17,7 +17,7 @@
 <div class="layui-layout layui-layout-admin">
     <div class="layui-header my-header">
         <a href="admin.html">
-            <div class="my-header-logo">温泉授权系统</div>
+            <div class="my-header-logo">小七授权系统</div>
         </a>
         <div class="my-header-btn">
             <button class="layui-btn layui-btn-small btn-nav layui-btn-normal"><i class="layui-icon">&#xe65f;</i>
@@ -137,14 +137,27 @@
                         </dd>
                     </dl>
                 </li>
-                <li class="layui-nav-item"><a target="_blank" href="../query.php"><i
-                        class="layui-icon">&#xe61e;</i>查询授权</a></li>
-                <li class="layui-nav-item"><a target="_blank" href="../change.php"><i
-                        class="layui-icon">&#xe61e;</i>更换授权</a></li>
-            </ul>
+                
+                                <li class="layui-nav-item layui-nav-itemed">
+                    <a href="javascript:;"><i class="layui-icon">&#xe621;</i>授权相关</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="javascript:;" href-url="../query.php"><i class="layui-icon">&#xe61e;</i>查询授权</a>
+                        </dd>
+                        <dd><a href="javascript:;" href-url="../change.php"><i class="layui-icon">&#xe61e;</i>更换授权</a>
+                        </dd>
+                    </dl>
 
-        </div>
-    </div>
+                
+                
+                
+    <!--            <li class="layui-nav-item"><a target="_blank" href="../query.php"><i-->
+    <!--                    class="layui-icon">&#xe61e;</i>查询授权</a></li>-->
+    <!--            <li class="layui-nav-item"><a target="_blank" href="../change.php"><i-->
+    <!--                    class="layui-icon">&#xe61e;</i>更换授权</a></li>-->
+    <!--        </ul>-->
+
+    <!--    </div>-->
+    <!--</div>-->
     <!-- body -->
     <div class="layui-body my-body">
         <div class="layui-tab layui-tab-card my-tab" lay-filter="card" lay-allowClose="true">
@@ -161,7 +174,7 @@
     <!-- footer -->
     <!--<div class="layui-footer footer footer-demo" style="text-align: center">
         <div class="layui-main">
-            <p>© 2024 温泉PHP网络授权系统 ALL right received&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;感谢选择本系统！</p>
+            <p>© 2024 小七PHP网络授权系统 ALL right received&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;感谢选择本系统！</p>
         </div>
     </div>-->
 </div>
