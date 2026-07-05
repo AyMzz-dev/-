@@ -5,7 +5,7 @@
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>管理后台 - 小七授权系统</title>
+    <title>二级管理后台 - 小七授权系统</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../static/global.css">
     <link rel="stylesheet" href="../static/frame/layui/css/layui.css">
@@ -17,7 +17,7 @@
 <div class="layui-layout layui-layout-admin">
     <div class="layui-header my-header">
         <a href="admin.html">
-            <div class="my-header-logo">小七授权系统</div>
+            <div class="my-header-logo">二级管理后台</div>
         </a>
         <div class="my-header-btn">
             <button class="layui-btn layui-btn-small btn-nav layui-btn-normal"><i class="layui-icon">&#xe65f;</i>
@@ -49,7 +49,13 @@
         <div class="layui-side-scroll">
             <!-- 左侧主菜单添加选项卡监听 -->
             <ul class="layui-nav layui-nav-tree" lay-filter="side-main">
-                <li class="layui-nav-item"><a href="javascript:;" href-url="html/yhxt.html"><i class="layui-icon">&#xe631;</i>云黑系统</a></li>
+                <li class="layui-nav-item layui-nav-itemed">
+                    <a href="javascript:;"><i class="layui-icon">&#xe617;</i>应用管理</a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="javascript:;" href-url="html/yhxt.html"><i class="layui-icon">&#xe631;</i>云黑系统</a>
+                        </dd>
+                    </dl>
+                </li>
                 <li class="layui-nav-item layui-nav-itemed">
                     <a href="javascript:;"><i class="layui-icon">&#xe600;</i>授权管理</a>
                     <dl class="layui-nav-child">
@@ -75,8 +81,7 @@
                         </dd>
                     </dl>
                 </li>
-                <li class="layui-nav-item"><a target="_blank" href="../query.php"><i class="layui-icon">&#xe61e;</i>查询授权</a></li>
-                <li class="layui-nav-item"><a target="_blank" href="../change.php"><i class="layui-icon">&#xe61e;</i>更换授权</a></li>
+            </ul>
 
     <!--    </div>-->
     <!--</div>-->
