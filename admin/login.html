@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>后台登录 - 温泉PHP网络授权</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../static/global.css">
+    <link rel="stylesheet" href="../static/frame/layui/css/layui.css">
+    <link rel="icon" href="../static/frame/static/image/code.png">
+    <script src="https://v.vaptcha.com/v3.js"></script>
+<style>
+    .login-page {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    .login-page::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 70% 80%, rgba(255,255,255,0.06) 0%, transparent 50%),
+                    radial-gradient(circle at 50% 50%, rgba(106,17,203,0.3) 0%, transparent 60%);
+        animation: bgFloat 20s ease-in-out infinite;
+    }
+    @keyframes bgFloat {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        33% { transform: translate(30px, -30px) rotate(1deg); }
+        66% { transform: translate(-20px, 20px) rotate(-1deg); }
+    }
+    .login-wrapper {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 420px;
+    }
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        animation: cardIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    @keyframes cardIn {
+        from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.96);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    .login-card-header {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        padding: 32px 28px 28px;
+        text-align: center;
+        color: white;
+    }
+    .login-card-header .logo-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 60px;
+        height: 60px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 16px;
+        margin-bottom: 16px;
+        font-size: 28px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    .login-card-header h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+        letter-spacing: 1px;
+    }
+    .login-card-header p {
+        font-size: 0.85rem;
+        opacity: 0.85;
+        font-weight: 400;
+    }
+    .login-card-body {
+        padding: 32px 28px;
+    }
+    .login-card-body .input-group {
+        margin-bottom: 18px;
+        position: relative;
+    }
+    .login-card-body .input-group .input-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #adb5bd;
+        font-size: 16px;
+        z-index: 1;
+        transition: color 0.3s;
+    }
+    .login-card-body .input-group input {
+        width: 100%;
+        padding: 14px 16px 14px 44px;
+        border: 2px solid #e1e5eb;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+        color: #212529;
+        outline: none;
+    }
+    .login-card-body .input-group input:focus {
+        border-color: #6a11cb;
+        box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.08);
+        background: white;
+    }
+    .login-card-body .input-group input:focus + .input-icon,
+    .login-card-body .input-group input:focus ~ .input-icon {
+        color: #6a11cb;
+    }
+    .login-card-body .input-group input::placeholder {
+        color: #adb5bd;
+    }
+    .login-card-body .vaptcha-wrap {
+        margin-bottom: 18px;
+        display: flex;
+        justify-content: center;
+    }
+    .login-card-body .btn-login {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+        letter-spacing: 2px;
+    }
+    .btn-login:hover {
+        background: linear-gradient(135deg, #5a0db5 0%, #1c68fa 100%);
+        box-shadow: 0 6px 25px rgba(106, 17, 203, 0.45);
+        transform: translateY(-1px);
+    }
+    .btn-login:active {
+        transform: translateY(0) scale(0.98);
+    }
+    .login-card-footer {
+        padding: 18px 28px;
+        text-align: center;
+        background: #f8f9fa;
+        border-top: 1px solid rgba(0,0,0,0.04);
+    }
+    .login-card-footer .home-link {
+        color: #6a11cb;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: color 0.3s;
+    }
+    .login-card-footer .home-link:hover {
+        color: #2575fc;
+    }
+    .login-card-footer .home-link i {
+        margin-right: 4px;
+    }
+    @media (max-width: 480px) {
+        .login-wrapper {
+            max-width: 100%;
+        }
+        .login-card-header {
+            padding: 24px 20px;
+        }
+        .login-card-body {
+            padding: 24px 20px;
+        }
+    }
+</style>
+</head>
+<body>
+<div class="login-page">
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-card-header">
+                <div class="logo-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <h2>二级后台登录</h2>
+                <p>温泉PHP网络授权管理系统</p>
+            </div>
+            <div class="login-card-body">
+                <form id="loginForm">
+                    <div class="input-group">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" name="username" required placeholder="请输入管理员账号" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" name="password" required placeholder="请输入密码" autocomplete="off">
+                    </div>
+                    <div class="vaptcha-wrap" id="vaptchaContainer"></div>
+                    <button type="submit" class="btn-login">登 录</button>
+                </form>
+            </div>
+            <div class="login-card-footer">
+                <a href="../" class="home-link"><i class="fas fa-home"></i> 返回首页</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../static/jquery-3.3.1.js"></script>
+<script src="../static/frame/layui/layui.js"></script>
+<script>
+    layui.use(['layer'], function () {
+        window.layer = layui.layer;
+        window.$ = layui.jquery;
+
+        $('#loginForm').on('submit', function(e) {
+            e.preventDefault();
+            var username = $('input[name="username"]').val().trim();
+            var password = $('input[name="password"]').val().trim();
+            if (!username) { layer.msg('请输入账号'); return false; }
+            if (!password) { layer.msg('请输入密码'); return false; }
+
+            var loading = layer.load();
+            var token = '';
+            if (typeof vaptchaObj !== 'undefined') {
+                token = vaptchaObj.getToken();
+                vaptchaObj.reset();
+            }
+            $.ajax({
+                url: 'ajax.php?mod=login',
+                type: 'POST',
+                dataType: 'json',
+                data: { username: username, password: password, token: token },
+                success: function (data) {
+                    layer.close(loading);
+                    if (data.code === '1' || data.code === 1) {
+                        window.location.href = 'admin.html';
+                    } else {
+                        layer.msg(data.msg || '登录失败');
+                    }
+                },
+                error: function (data) {
+                    layer.close(loading);
+                    layer.msg('[' + data.status + ']' + data.statusText);
+                }
+            });
+            return false;
+        });
+
+        $.ajax({
+            url: '../function/GetVerification.php',
+            type: 'GET',
+            dataType: 'html',
+            success: function (data) {
+                $('#vaptchaContainer').html(data);
+            },
+            error: function (data) {
+                layer.msg('[' + data.status + ']' + data.statusText);
+            }
+        });
+    });
+</script>
+</body>
+</html>

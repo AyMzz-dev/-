@@ -1,0 +1,43 @@
+# 应用上传目录
+/img/apps/*
+/admin/dialogs/upload/*
+
+# IDE
+/.idea/
+/.vscode/
+*.swp
+*.swo
+
+# 备份文件
+*.bak
+/SDK/*.bak
+
+# 源码备份
+/function/function_core_source.php
+
+# 安装文件（导入数据库后应删除）
+/install.php
+
+# 数据库配置（包含敏感信息，不应提交）
+/function/config.inc.php
+
+# 临时文件和调试文件
+*.tmp
+*.log
+/debug/
+
+# 压缩包
+*.zip
+*.rar
+*.7z
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Trae 工作目录
+/.trae-cn/
+
+# 上传临时目录
+/upload/

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>欢迎页</title>
+    <link rel="stylesheet" href="../../static/frame/layui/css/layui.css">
+    <link rel="stylesheet" href="../../static/frame/static/css/style.css">
+    <link rel="icon" href="../../static/frame/static/image/code.png">
+</head>
+<body class="body">
+
+<div class="layui-row layui-col-space10 my-index-main">
+    <form class="layui-form" action="">
+        <div class="layui-form-item">
+            <label class="layui-form-label">拉黑应用</label>
+            <div class="layui-input-block">
+                <select id="applist" name="applist" lay-search required lay-verify="required">
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">输入对象</label>
+            <div class="layui-input-block">
+                <input type="text" name="obj" required lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">输入理由</label>
+            <div class="layui-input-block">
+                <input type="text" name="reason" required lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">输入等级</label>
+            <div class="layui-input-block">
+                <select name="dj" required lay-verify="required">
+                    <option value="">请选择等级</option>
+                    <option value="1">1级-低风险</option>
+                    <option value="2">2级-中风险</option>
+                    <option value="3">3级-高风险</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="formDemo">添加云黑</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+
+
+    <table class="layui-hide" id="bclist" lay-filter="bclist"></table>
+    <script type="text/html" id="barDemo">
+        <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    </script>
+    
+    <!-- 等级下拉选择模板 -->
+    <script type="text/html" id="levelTpl">
+        <div class="level-container" data-id="{{d.ID}}">
+            <span class="level-display">
+                {{# if(d.dj == '1') { }}
+                    <span class="layui-badge layui-bg-green">1级-低风险</span>
+                {{# } else if(d.dj == '2') { }}
+                    <span class="layui-badge layui-bg-orange">2级-中风险</span>
+                {{# } else if(d.dj == '3') { }}
+                    <span class="layui-badge layui-bg-red">3级-高风险</span>
+                {{# } else { }}
+                    {{ d.dj }}
+                {{# } }}
+            </span>
+            <select class="level-select" style="display:none;">
+                <option value="1" {{ d.dj == '1' ? 'selected' : '' }}>1级-低风险</option>
+                <option value="2" {{ d.dj == '2' ? 'selected' : '' }}>2级-中风险</option>
+                <option value="3" {{ d.dj == '3' ? 'selected' : '' }}>3级-高风险</option>
+            </select>
+        </div>
+    </script>
+
+</div>
+
+
+<script src="../../static/jquery-3.3.1.js"></script>
+<script type="text/javascript" src="../../static/frame/layui/layui.js"></script>
+<script type="text/javascript" src="../../static/js/index.js"></script>
+<script type="text/javascript" src="../../static/frame/echarts/echarts.min.js"></script>
+<script type="text/javascript">
+
+    layui.use(['form', 'table', 'element', 'layer', 'vip_tab'], function () {
+        // 打开选项卡
+        $('.my-nav-btn').on('click', function () {
+            if ($(this).attr('data-href')) {
+                vipTab.add($(this), '<i class="layui-icon">' + $(this).find("button").html() + '</i>' + $(this).find('p:last-child').html(), $(this).attr('data-href'));
+            }
+        });
+        var table = layui.table, form = layui.form;
+        var loading = layer.load();
+        $.ajax({
+            url: '../ajax.php?mod=user_applist',
+            type: 'POST',
+            dataType: 'html',
+            data: '',
+            success: function (data) {
+                layer.close(loading);
+                $('#applist').html('<option></option><option value="0">所有应用</option>'+data);
+                form.render('select');
+            },
+            error: function (data) {
+                layer.close(loading);
+                layer.msg('请求失败' + data);
+            }
+        })
+
+        table.render({
+            elem: '#bclist'
+            , url: '../ajax.php?mod=getbclist'
+            , cellMinWidth: 130
+            , cols: [[
+                {field: 'ID', title: 'ID', width: 60}
+                , {field: 'obj', title: '对象', edit: 'text'}
+                , {
+                    field: 'dj', 
+                    title: '等级', 
+                    templet: '#levelTpl',
+                    width: 180
+                }     
+                , {field: 'app', title: '应用'}
+                , {field: 'time', title: '添加时间'}
+                , {field: 'reason', title: '云黑理由', edit: 'text'}
+                , {toolbar: '#barDemo', title: '操作', width: 240}
+            ]]
+            , page: true
+            , done: function(res, curr, count){
+                // 表格渲染完成后绑定事件
+                bindLevelEvents();
+            }
+        });
+
+        // 绑定等级选择事件
+        function bindLevelEvents() {
+            // 点击等级显示下拉框
+            $('body').off('click', '.level-display').on('click', '.level-display', function() {
+                var container = $(this).closest('.level-container');
+                container.find('.level-display').hide();
+                container.find('.level-select').show().focus();
+            });
+            
+            // 下拉框失去焦点时隐藏
+            $('body').off('blur', '.level-select').on('blur', '.level-select', function() {
+                var container = $(this).closest('.level-container');
+                container.find('.level-select').hide();
+                container.find('.level-display').show();
+            });
+            
+            // 下拉框值改变时
+            $('body').off('change', '.level-select').on('change', '.level-select', function() {
+                var newValue = $(this).val();
+                var container = $(this).closest('.level-container');
+                var id = container.data('id');
+                
+                // 更新显示
+                container.find('.level-display').html(getLevelBadge(newValue));
+                container.find('.level-select').hide();
+                container.find('.level-display').show();
+                
+                // 发送更新请求
+                $.ajax({
+                    url: '../ajax.php?mod=changebc',
+                    type: 'POST',
+                    dataType: 'html',
+                    data: 'id=' + id + '&mod=dj&value=' + newValue,
+                    success: function (response) {
+                        layer.msg(response);
+                    },
+                    error: function (err) {
+                        layer.msg('请求失败: ' + err);
+                    }
+                });
+            });
+        }
+        
+        // 获取等级徽章HTML
+        function getLevelBadge(level) {
+            if (level == '1') {
+                return '<span class="layui-badge layui-bg-green">1级-低风险</span>';
+            } else if (level == '2') {
+                return '<span class="layui-badge layui-bg-orange">2级-中风险</span>';
+            } else if (level == '3') {
+                return '<span class="layui-badge layui-bg-red">3级-高风险</span>';
+            } else {
+                return level;
+            }
+        }
+
+        // 监听行工具事件
+        table.on('tool(bclist)', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'del') {
+                layer.confirm('确定要删除这个账号('+data.obj+')？', function (index) {
+                    $.ajax({
+                        url: '../ajax.php?mod=delbc',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: 'id=' + data.ID,
+                        success: function (data) {
+                            obj.del();
+                            layer.msg(data.msg);
+                        },
+                        error: function (data) {
+                            layer.msg('请求失败' + data);
+                        }
+                    });
+                    layer.close(index);
+                });
+            }
+        });
+        
+        // 监听单元格编辑事件
+        table.on('edit(bclist)', function (obj) {
+            var value = obj.value;
+            var data = obj.data;
+            var field = obj.field;
+            
+            // 如果是等级字段，则跳过（我们使用自己的下拉选择）
+            if (field === 'dj') {
+                return false;
+            }
+            
+            // 其他字段正常编辑
+            $.ajax({
+                url: '../ajax.php?mod=changebc',
+                type: 'POST',
+                dataType: 'html',
+                data: 'id=' + obj.data.ID + '&mod=' + field + '&value=' + obj.value,
+                success: function (data) {
+                    layer.msg(data);
+                },
+                error: function (data) {
+                    layer.msg('请求失败' + data);
+                }
+            });
+        });
+
+        // 添加云黑表单提交
+        form.on('submit', function (data) {
+            var loading = layer.load();
+            $.ajax({
+                url: '../ajax.php?mod=addbc',
+                type: 'POST',
+                dataType: 'json',
+                data: 'obj=' + data.field.obj + '&dj=' + data.field.dj + '&appid=' + data.field.applist + '&reason=' + data.field.reason,
+                success: function (data) {
+                    layer.close(loading);
+                    layer.msg(data.msg);
+                    table.reload('bclist', {url: '../ajax.php?mod=getbclist'});
+                },
+                error: function (data) {
+                    layer.close(loading);
+                    layer.msg('请求失败' + data);
+                }
+            })
+            return false; //阻止表单跳转。如果需要表单跳转，去掉这段即可。
+        });
+
+    });
+
+
+</script>
+</body>
+</html>

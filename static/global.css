@@ -1,0 +1,716 @@
+/* ============================================================
+   温泉PHP网络授权系统 - 全局设计系统 (v3.0)
+   设计参考: 6666.authcnmtx.cn
+   设计语言: 紫蓝渐变 + 玻璃态卡片 + 现代圆角
+   ============================================================ */
+
+:root {
+    /* 主色调 */
+    --primary: #6a11cb;
+    --primary-dark: #5a0db5;
+    --secondary: #2575fc;
+    --secondary-dark: #1c68fa;
+    --success: #00b09b;
+    --success-dark: #009a87;
+    --danger: #ff416c;
+    --danger-dark: #e8355f;
+    --warning: #ff9f43;
+    --info: #00c9db;
+
+    /* 中性色 */
+    --light: #f8f9fa;
+    --dark: #212529;
+    --gray: #6c757d;
+    --gray-light: #adb5bd;
+    --border-color: #e1e5eb;
+
+    /* 卡片 */
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --card-bg-glass: rgba(255, 255, 255, 0.92);
+    --card-radius: 16px;
+    --card-radius-sm: 12px;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.18);
+    --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.08);
+
+    /* 按钮 */
+    --btn-radius: 12px;
+    --btn-radius-sm: 8px;
+
+    /* 过渡 */
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: 0.2s ease;
+
+    /* 字体 */
+    --font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+
+    /* 背景渐变 */
+    --bg-gradient: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    --bg-gradient-dark: linear-gradient(135deg, #4a0d8f 0%, #1a4fc7 100%);
+    --bg-gradient-green: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+    --bg-gradient-danger: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+    --bg-gradient-warm: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+/* 全局重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    line-height: 1.6;
+    color: var(--dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 渐变背景 */
+.bg-gradient {
+    background: var(--bg-gradient);
+    min-height: 100vh;
+}
+
+.bg-gradient-dark {
+    background: var(--bg-gradient-dark);
+    min-height: 100vh;
+}
+
+/* 玻璃态卡片 */
+.card-glass {
+    background: var(--card-bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.card-glass:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-glass-sm {
+    background: var(--card-bg-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--card-radius-sm);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 卡片头部 */
+.card-header-grad {
+    background: var(--bg-gradient);
+    color: white;
+    padding: 18px 24px;
+    border-radius: var(--card-radius) var(--card-radius) 0 0;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.card-header-green {
+    background: var(--bg-gradient-green);
+    color: white;
+    padding: 18px 24px;
+    border-radius: var(--card-radius) var(--card-radius) 0 0;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.card-body {
+    padding: 24px;
+}
+
+/* 表单控件 */
+.form-control-custom {
+    width: 100%;
+    padding: 16px 18px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--btn-radius);
+    font-size: 1.05rem;
+    font-family: var(--font-family);
+    transition: all var(--transition);
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--dark);
+}
+
+.form-control-custom:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(106, 17, 203, 0.1);
+    background: white;
+}
+
+.form-control-custom::placeholder {
+    color: var(--gray-light);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--dark);
+    font-size: 0.95rem;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+/* 选择框 */
+select.form-control-custom {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 1.2em;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+/* 按钮 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: var(--btn-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: var(--font-family);
+    cursor: pointer;
+    transition: all var(--transition);
+    border: none;
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background: var(--bg-gradient);
+    color: white;
+    box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
+    box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: var(--bg-gradient-green);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 176, 155, 0.3);
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--success-dark), #7cb028);
+    box-shadow: 0 6px 20px rgba(0, 176, 155, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: var(--bg-gradient-danger);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 65, 108, 0.3);
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, var(--danger-dark), #e04020);
+    box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background: transparent;
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: white;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #e9ecef;
+    color: var(--dark);
+}
+
+.btn-secondary:hover {
+    background: #dde0e3;
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    border-radius: var(--btn-radius-sm);
+}
+
+.btn-lg {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+/* 导航栏 */
+.navbar-glass {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: var(--card-radius);
+    padding: 14px 28px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.navbar-logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.navbar-logo i {
+    font-size: 1.6rem;
+}
+
+.navbar-links {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.navbar-links a {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: var(--btn-radius-sm);
+    transition: all var(--transition);
+}
+
+.navbar-links a:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+/* 头部标题 */
+.header-section {
+    text-align: center;
+    padding: 30px 20px;
+    color: white;
+}
+
+.header-section h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.header-section p {
+    font-size: 1.15rem;
+    opacity: 0.9;
+    max-width: 650px;
+    margin: 0 auto;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 页脚 */
+.footer-section {
+    text-align: center;
+    padding: 24px 20px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.9rem;
+}
+
+.footer-section a {
+    color: white;
+    text-decoration: none;
+    transition: opacity var(--transition-fast);
+}
+
+.footer-section a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* 布局容器 */
+.container-custom {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* 双栏布局 */
+.grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 30px;
+}
+
+.grid-2col-equal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+/* 特性卡片 */
+.feature-card {
+    background: var(--card-bg-glass);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: var(--card-radius);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all var(--transition);
+}
+
+.feature-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow);
+}
+
+.feature-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--dark);
+}
+
+.feature-card p {
+    color: var(--gray);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.6;
+}
+
+.empty-state h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--dark);
+}
+
+.empty-state p {
+    font-size: 0.9rem;
+}
+
+/* 徽章 */
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.badge-primary {
+    background: rgba(106, 17, 203, 0.1);
+    color: var(--primary);
+}
+
+.badge-success {
+    background: rgba(0, 176, 155, 0.1);
+    color: var(--success);
+}
+
+.badge-danger {
+    background: rgba(255, 65, 108, 0.1);
+    color: var(--danger);
+}
+
+.badge-warning {
+    background: rgba(255, 159, 67, 0.1);
+    color: var(--warning);
+}
+
+/* 动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.animate-scaleIn {
+    animation: scaleIn 0.4s ease forwards;
+}
+
+/* 交错动画延迟 */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+
+/* 隐藏粒子背景 */
+.login-page-bg {
+    background: var(--bg-gradient);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* 登录卡片 */
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--card-bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    overflow: hidden;
+    animation: scaleIn 0.5s ease forwards;
+}
+
+.login-card-header {
+    background: var(--bg-gradient);
+    padding: 28px 24px;
+    text-align: center;
+    color: white;
+}
+
+.login-card-header h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.login-card-header p {
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+
+.login-card-body {
+    padding: 32px 28px;
+}
+
+.login-card-body .form-group {
+    margin-bottom: 18px;
+}
+
+.login-card-body .form-control-custom {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #e0e5ec;
+}
+
+.login-card-body .btn {
+    margin-top: 8px;
+}
+
+.login-card-footer {
+    padding: 16px 28px;
+    text-align: center;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.login-card-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: color var(--transition-fast);
+}
+
+.login-card-footer a:hover {
+    color: var(--secondary);
+}
+
+/* 响应式 */
+@media (max-width: 992px) {
+    .grid-2col {
+        grid-template-columns: 1fr;
+    }
+    .grid-2col-equal {
+        grid-template-columns: 1fr;
+    }
+    .navbar-links {
+        display: none;
+    }
+    .header-section h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-section h1 {
+        font-size: 1.6rem;
+    }
+    .header-section p {
+        font-size: 1rem;
+    }
+    .login-card {
+        max-width: 100%;
+    }
+    .container-custom {
+        padding: 0 12px;
+    }
+}
+
+/* ============================================================
+   Layer 弹窗美化 - 紫蓝渐变主题
+   ============================================================ */
+
+/* alert / confirm 弹窗内容区 */
+.layui-layer-dialog .layui-layer-content {
+    padding: 24px 20px !important;
+    font-size: 1rem;
+    color: #212529;
+    text-align: center;
+    line-height: 1.8;
+}
+
+/* 弹窗标题栏 */
+.layui-layer-dialog .layui-layer-title,
+.layui-layer-title {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%) !important;
+    color: #fff !important;
+    border-bottom: none !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
+/* 弹窗整体圆角 */
+.layui-layer-dialog {
+    border-radius: 8px !important;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 弹窗按钮 */
+.layui-layer-btn .layui-layer-btn0 {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.layui-layer-btn .layui-layer-btn0:hover {
+    background: linear-gradient(135deg, #5a0db5 0%, #1c68fa 100%) !important;
+    box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+}
+
+.layui-layer-btn a {
+    border-radius: 8px !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+/* msg 提示框 */
+.layui-layer-msg {
+    border-radius: 12px !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2) !important;
+    border: none !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    font-size: 1rem;
+    font-weight: 500;
+    padding: 14px 24px !important;
+}
+
+/* loading 遮罩 */
+.layui-layer-loading .layui-layer-content {
+    padding: 20px !important;
+}
+
+/* 弹窗关闭按钮 */
+.layui-layer-setwin .layui-layer-close {
+    color: #fff !important;
+}
+
+.layui-layer-setwin .layui-layer-close:hover {
+    color: rgba(255, 255, 255, 0.7) !important;
+}

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>欢迎页</title>
+    <link rel="stylesheet" href="../../static/frame/layui/css/layui.css">
+    <link rel="stylesheet" href="../../static/frame/static/css/style.css">
+    <link rel="icon" href="../../static/frame/static/image/code.png">
+</head>
+<body class="body">
+
+<div class="layui-row layui-col-space10 my-index-main">
+    <form class="layui-form" action="">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">输入品牌名</label>
+            <div class="layui-input-block">
+                <input type="text" name="mc" required lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">输入授权站链接</label>
+            <div class="layui-input-block">
+                <input type="text" name="lj" required lay-verify="required" placeholder="" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+         <div class="layui-form-item">
+            <label class="layui-form-label">授权站类型</label>
+            <div class="layui-input-block">
+                <select id="type" name="type" lay-search required lay-verify="required">
+                   <option></option><option value="0">温泉授权系统</option>
+                    <option></option><option value="1">南逸授权系统</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="formDemo">添加查询</button>
+                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+            </div>
+        </div>
+    </form>
+
+
+    <table class="layui-hide" id="bclist" lay-filter="bclist"></table>
+    <script type="text/html" id="barDemo">
+        <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+    </script>
+
+</div>
+
+
+<script src="../../static/jquery-3.3.1.js"></script>
+<script type="text/javascript" src="../../static/frame/layui/layui.js"></script>
+<script type="text/javascript" src="../../static/js/index.js"></script>
+<script type="text/javascript" src="../../static/frame/echarts/echarts.min.js"></script>
+<script type="text/javascript">
+
+
+    layui.use(['form', 'table', 'element', 'layer', 'vip_tab'], function () {
+        // 打开选项卡
+        $('.my-nav-btn').on('click', function () {
+            if ($(this).attr('data-href')) {
+                vipTab.add($(this), '<i class="layui-icon">' + $(this).find("button").html() + '</i>' + $(this).find('p:last-child').html(), $(this).attr('data-href'));
+            }
+        });
+        var table = layui.table, form = layui.form;
+      
+        table.render({
+            elem: '#bclist'
+            , url: '../ajax.php?mod=getsqlist'
+            , cellMinWidth: 130
+            , cols: [[
+                {field: 'ID', title: 'ID', width: 60}
+                 , {field: 'type', title: '类型', edit: 'text'}  
+                , {field: 'mc', title: '品牌名', edit: 'text'}       
+                , {field: 'lj', title: '链接', edit: 'text', width:300}     
+               , {field: 'appid', title: '南逸应用ID', edit: 'text'}  
+                , {toolbar: '#barDemo', title: '操作', width: 240}
+            ]]
+            , page: true
+        });
+
+        table.on('tool', function (obj) {
+            var data = obj.data;
+            if (obj.event === 'del') {
+                layer.confirm('确定要删除这个授权站('+data.obj+')？', function (index) {
+                    $.ajax({
+                        url: '../ajax.php?mod=delsq',
+                        type: 'POST',
+                        dataType: 'json',
+                        data: 'ID=' + data.ID,
+                        success: function (data) {
+                            //layer.close(loading);
+                            obj.del();
+                            layer.msg(data.msg);
+                        },
+                        error: function (data) {
+                            //layer.close(loading);
+                            layer.msg('请求失败' + data);
+                        }
+                    });
+                    layer.close(index);
+                });
+            }
+        });
+table.on('edit(bclist)', function (obj) {
+            var value = obj.value //得到修改后的值
+                , data = obj.data //得到所在行所有键值
+                , field = obj.field; //得到字段
+           
+            $.ajax({
+                url: '../ajax.php?mod=changesq',
+                type: 'POST',
+                dataType: 'html',
+                data: 'id=' + obj.data.ID + '&mod=' + obj.field + '&value=' + obj.value,
+                success: function (data) {
+                    //obj.del();
+                    //layer.close(loading);
+                    layer.msg(data);
+                },
+                error: function (data) {
+                    //layer.close(loading);
+                    layer.msg('请求失败' + data);
+                }
+            })
+        });
+
+        form.on('submit', function (data) {
+            var loading = layer.load();
+            $.ajax({
+                url: '../ajax.php?mod=addsq',
+                type: 'POST',
+                dataType: 'json',
+                data: 'mc=' + data.field.mc + '&lj=' + data.field.lj + '&type=' + data.field.type,
+                success: function (data) {
+                    layer.close(loading);
+                    layer.msg(data.msg);
+                    table.reload('bclist', {url: '../ajax.php?mod=getsqlist'});
+                },
+                error: function (data) {
+                    layer.close(loading);
+                    layer.msg('请求失败' + data);
+                }
+            })
+            return false; //阻止表单跳转。如果需要表单跳转，去掉这段即可。
+        });
+
+    });
+
+
+</script>
+</body>
+</html>
