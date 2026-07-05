@@ -239,6 +239,23 @@ if (!$G['config']['xtsy']) die(); ?>
         <p>安全便捷的授权购买平台，一键开通您所需的应用授权</p>
     </div>
 
+    <!-- 公告栏 -->
+    <?php
+    $notices = $db->select_limit_row('sq_notice','*',0,5,array('status'=>1),'AND','ORDER BY sort DESC, ID DESC');
+    if (!empty($notices)):
+    ?>
+    <div class="notice-bar" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);border-radius:16px;padding:15px 25px;margin-bottom:25px;border:1px solid rgba(255,255,255,0.2);">
+        <div style="color:white;font-weight:700;margin-bottom:10px;font-size:1.1rem;"><i class="fas fa-bullhorn"></i> 系统公告</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+            <?php foreach($notices as $notice): ?>
+            <span style="background:rgba(255,255,255,0.2);color:white;padding:6px 15px;border-radius:20px;font-size:0.9rem;cursor:pointer;" onclick="layer.open({type:1,title:'<?php echo htmlspecialchars($notice['title'],ENT_QUOTES) ?>',area:['500px','auto'],content:'<div style=\'padding:20px;line-height:1.8;\'><?php echo nl2br(htmlspecialchars($notice['content'],ENT_QUOTES)) ?></div>'});">
+                <i class="fas fa-volume-up" style="margin-right:5px;"></i><?php echo htmlspecialchars($notice['title'],ENT_QUOTES) ?>
+            </span>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <!-- 主要内容区 -->
     <div class="main-content">
         <!-- 左侧：应用选择 -->

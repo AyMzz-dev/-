@@ -1759,6 +1759,77 @@ switch ($_GET['mod']){
             die('代理划拨成功！代理ID '.$_POST['userid'].' 的上级已修改为 '.$_POST['newid']);
         }
         break;
+    case 'getnoticelist':
+        if(!$result = $db->select_limit_row('sq_notice','*',($_GET['page'] - 1) * $_GET['limit'] , $_GET['limit'], array(), 'AND','ORDER BY sort DESC, ID DESC')){
+            $backinfo['msg'] = $db->geterror();
+            if ($backinfo['msg'] == ''){
+                $backinfo['code'] = 0;
+            }
+            die(json_encode($backinfo));
+        }else{
+            $backinfo['code'] = 0;
+            $backinfo['msg'] = '';
+            $backinfo['count'] = $db->select_count_row('sq_notice');
+            foreach ($result as $value){
+                $value['time'] = Get_Date($value['time']);
+                $backinfo['data'][] = $value;
+            }
+            die(json_encode($backinfo));
+        }
+        break;
+    case 'addnotice':
+        if (empty($_POST['title']) || empty($_POST['content'])){
+            die(json_encode(array('code'=>-1,'msg'=>'公告标题和内容不能为空')));
+        }
+        $_POST['time'] = time();
+        $_POST['status'] = 1;
+        if (empty($_POST['sort'])) $_POST['sort'] = 0;
+        if(!$db->insert_back_id('sq_notice',$_POST)){
+            die(json_encode(array('code'=>-2,'msg'=>$db->geterror())));
+        }else{
+            die(json_encode(array('code'=>1,'msg'=>'公告添加成功')));
+        }
+        break;
+    case 'delnotice':
+        if (!$db->delete('sq_notice',array('ID'=>$_POST['id']),'AND')){
+            die(json_encode(array('code'=>-1,'msg'=>'删除失败'.$db->geterror())));
+        }else{
+            die(json_encode(array('code'=>1,'msg'=>'删除成功')));
+        }
+        break;
+    case 'changenotice':
+        if (empty($_POST['id']) || empty($_POST['mod']) || !isset($_POST['value'])){
+            die(json_encode(array('code'=>-1,'msg'=>'参数错误')));
+        }
+        if (!$db->update('sq_notice',array('ID'=>$_POST['id']),'AND',array($_POST['mod']=>$_POST['value']))){
+            die(json_encode(array('code'=>-1,'msg'=>'修改失败'.$db->geterror())));
+        }else{
+            die(json_encode(array('code'=>1,'msg'=>'修改成功')));
+        }
+        break;
+    case 'getversion':
+        die(json_encode(array('version'=>str_replace('.','',$G['siteinfo']['ver']))));
+        break;
+    case 'checkupdate':
+        // 比较本地版本和远程版本
+        $localVer = str_replace('.','',$G['siteinfo']['ver']);
+        $needUpdate = false;
+        if (!empty($_POST['remote_sha'])){
+            // 通过访问 GitHub 的 version.json 来比较版本号
+            // 如果无法获取则默认不需要更新
+            $remoteCheck = @file_get_contents('https://raw.githubusercontent.com/AyMzz-dev/-/master/function/ver.inc.php');
+            if ($remoteCheck){
+                preg_match("/'ver'\s*=>\s*'([^']+)'/", $remoteCheck, $matches);
+                if (!empty($matches[1])){
+                    $remoteVer = str_replace('.','',$matches[1]);
+                    if (intval($remoteVer) > intval($localVer)){
+                        $needUpdate = true;
+                    }
+                }
+            }
+        }
+        die(json_encode(array('need_update'=>$needUpdate)));
+        break;
     default:
         die('What the fuck');
 }

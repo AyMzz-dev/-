@@ -310,6 +310,21 @@ CREATE TABLE `sq_site` (
 -- --------------------------------------------------------
 
 --
+-- 表的结构 `sq_notice`
+--
+
+CREATE TABLE `sq_notice` (
+  `ID` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `content` text NOT NULL,
+  `time` int(11) NOT NULL,
+  `status` int(1) NOT NULL DEFAULT '1',
+  `sort` int(11) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 ROW_FORMAT=COMPACT;
+
+-- --------------------------------------------------------
+
+--
 -- 表的结构 `sq_token`
 --
 
@@ -506,6 +521,12 @@ ALTER TABLE `sq_site`
   ADD PRIMARY KEY (`ID`) USING BTREE;
 
 --
+-- 表的索引 `sq_notice`
+--
+ALTER TABLE `sq_notice`
+  ADD PRIMARY KEY (`ID`) USING BTREE;
+
+--
 -- 表的索引 `sq_token`
 --
 ALTER TABLE `sq_token`
@@ -632,6 +653,12 @@ ALTER TABLE `sq_log_system`
 -- 使用表AUTO_INCREMENT `sq_site`
 --
 ALTER TABLE `sq_site`
+  MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `sq_notice`
+--
+ALTER TABLE `sq_notice`
   MODIFY `ID` int(11) NOT NULL AUTO_INCREMENT;
 
 --

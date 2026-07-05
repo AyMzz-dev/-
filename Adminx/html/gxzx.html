@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>在线更新</title>
+    <link rel="stylesheet" href="../../static/frame/layui/css/layui.css">
+    <link rel="stylesheet" href="../../static/frame/static/css/style.css">
+    <link rel="icon" href="../../static/frame/static/image/code.png">
+    <style>
+        .update-container { padding: 20px; max-width: 800px; }
+        .version-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .version-card h3 { margin-bottom: 15px; font-size: 18px; }
+        .version-info { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f0f0f0; }
+        .version-info:last-child { border-bottom: none; }
+        .version-info label { font-weight: 600; color: #666; width: 120px; }
+        .version-info span { color: #333; flex: 1; }
+        .version-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .tag-local { background: #e6f7ff; color: #1890ff; }
+        .tag-remote { background: #f6ffed; color: #52c41a; }
+        .tag-outdated { background: #fff2e8; color: #fa541c; }
+        .changelog { background: #f9f9f9; border-radius: 8px; padding: 15px; margin-top: 10px; max-height: 300px; overflow-y: auto; }
+        .changelog pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-size: 13px; color: #555; }
+        .btn-update {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .btn-update:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(106,17,203,0.4); color: white; }
+        .btn-check { margin-left: 10px; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .dot-green { background: #52c41a; }
+        .dot-red { background: #ff4d4f; }
+        .dot-blue { background: #1890ff; }
+    </style>
+</head>
+<body class="body">
+
+<div class="layui-row layui-col-space10 my-index-main">
+    <div class="update-container">
+        <!-- 当前版本 -->
+        <div class="version-card">
+            <h3><i class="layui-icon" style="font-size:20px;">&#xe68e;</i> 当前版本</h3>
+            <div class="version-info">
+                <label>本地版本：</label>
+                <span><span class="version-tag tag-local" id="localVer">-</span></span>
+            </div>
+            <div class="version-info">
+                <label>系统标识：</label>
+                <span>温泉PHP网络授权系统</span>
+            </div>
+            <div class="version-info">
+                <label>GitHub 仓库：</label>
+                <span><a href="https://github.com/AyMzz-dev/-" target="_blank" style="color:#1890ff;">AyMzz-dev/-</a></span>
+            </div>
+        </div>
+
+        <!-- 远程版本 -->
+        <div class="version-card">
+            <h3><i class="layui-icon" style="font-size:20px;">&#xe609;</i> 远程版本</h3>
+            <div class="version-info">
+                <label>最新版本：</label>
+                <span><span class="version-tag tag-remote" id="remoteVer">检测中...</span></span>
+            </div>
+            <div class="version-info">
+                <label>更新状态：</label>
+                <span id="updateStatus"><span class="status-dot dot-blue"></span>正在检测...</span></span>
+            </div>
+            <div class="version-info">
+                <label>最新提交：</label>
+                <span id="latestCommit">-</span>
+            </div>
+            <div class="version-info">
+                <label>提交时间：</label>
+                <span id="commitTime">-</span>
+            </div>
+            <div style="text-align:center;margin-top:20px;">
+                <button class="layui-btn layui-btn-normal" id="btnCheck" onclick="checkUpdate()">
+                    <i class="layui-icon">&#xe669;</i> 重新检测
+                </button>
+                <a href="https://github.com/AyMzz-dev/-" target="_blank" class="layui-btn layui-btn-warm">
+                    <i class="layui-icon">&#xe64e;</i> 前往仓库
+                </a>
+            </div>
+        </div>
+
+        <!-- 更新日志 -->
+        <div class="version-card">
+            <h3><i class="layui-icon" style="font-size:20px;">&#xe666;</i> 更新日志</h3>
+            <div class="changelog" id="changelog">
+                <pre>正在获取更新日志...</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../../static/jquery-3.3.1.js"></script>
+<script type="text/javascript" src="../../static/frame/layui/layui.js"></script>
+<script type="text/javascript" src="../../static/js/index.js"></script>
+<script type="text/javascript">
+    layui.use(['layer', 'vip_tab'], function () {
+        $('.my-nav-btn').on('click', function () {
+            if ($(this).attr('data-href')) {
+                vipTab.add($(this), '<i class="layui-icon">' + $(this).find("button").html() + '</i>' + $(this).find('p:last-child').html(), $(this).attr('data-href'));
+            }
+        });
+
+        // 获取本地版本
+        $.ajax({
+            url: '../ajax.php?mod=getversion',
+            type: 'POST',
+            dataType: 'json',
+            success: function(data) {
+                $('#localVer').text('v' + data.version);
+            },
+            error: function() { $('#localVer').text('v12.12'); }
+        });
+
+        checkUpdate();
+    });
+
+    function checkUpdate() {
+        var btn = $('#btnCheck');
+        btn.prop('disabled', true).html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 检测中...');
+
+        $.ajax({
+            url: 'https://api.github.com/repos/AyMzz-dev/-/commits?per_page=5',
+            type: 'GET',
+            dataType: 'json',
+            headers: { 'Accept': 'application/vnd.github.v3+json' },
+            success: function(data) {
+                if (!data || data.length === 0) {
+                    $('#remoteVer').text('获取失败');
+                    $('#updateStatus').html('<span class="status-dot dot-red"></span>无法获取远程版本');
+                    $('#changelog pre').text('获取远程仓库信息失败，请检查仓库地址是否正确。');
+                    return;
+                }
+
+                var latest = data[0];
+                var localVer = $('#localVer').text().replace('v', '');
+                var remoteSha = latest.sha.substring(0, 7);
+                var commitDate = new Date(latest.commit.author.date).toLocaleString('zh-CN');
+
+                $('#remoteVer').text(remoteSha);
+                $('#latestCommit').text(latest.commit.message.split('\n')[0]);
+                $('#commitTime').text(commitDate);
+
+                // 构建更新日志
+                var log = '';
+                for (var i = 0; i < data.length; i++) {
+                    var d = new Date(data[i].commit.author.date).toLocaleString('zh-CN');
+                    log += '[' + d + '] ' + data[i].commit.message.split('\n')[0] + '\n';
+                    log += '  提交: ' + data[i].sha.substring(0, 7) + '\n\n';
+                }
+                $('#changelog pre').text(log);
+
+                // 检查是否需要更新（通过比较本地和远程的版本号）
+                checkVersionUpdate(localVer, remoteSha);
+            },
+            error: function(xhr) {
+                var msg = '网络请求失败';
+                if (xhr.status === 403) {
+                    msg = 'GitHub API 调用频率超限，请稍后再试（或前往仓库手动查看）';
+                } else if (xhr.status === 404) {
+                    msg = '仓库不存在或为私有仓库，请确认仓库地址';
+                }
+                $('#remoteVer').text('获取失败');
+                $('#updateStatus').html('<span class="status-dot dot-red"></span>' + msg);
+                $('#changelog pre').text(msg);
+            },
+            complete: function() {
+                btn.prop('disabled', false).html('<i class="layui-icon">&#xe669;</i> 重新检测');
+            }
+        });
+    }
+
+    function checkVersionUpdate(localVer, remoteSha) {
+        $.ajax({
+            url: '../ajax.php?mod=checkupdate',
+            type: 'POST',
+            dataType: 'json',
+            data: { 'remote_sha': remoteSha },
+            success: function(data) {
+                if (data.need_update) {
+                    $('#updateStatus').html('<span class="status-dot dot-red"></span><b style="color:#ff4d4f;">发现新版本，建议更新！</b>');
+                } else {
+                    $('#updateStatus').html('<span class="status-dot dot-green"></span><b style="color:#52c41a;">已是最新版本</b>');
+                }
+            },
+            error: function() {
+                $('#updateStatus').html('<span class="status-dot dot-blue"></span>请前往 GitHub 仓库手动检查更新');
+            }
+        });
+    }
+</script>
+</body>
+</html>
