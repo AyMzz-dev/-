@@ -681,6 +681,13 @@ ALTER TABLE `sq_user`
 -- UPDATE `sq_config` SET `setvalue` = 'admin@example.com' WHERE `setname` = 'adminmail';
 
 --
+-- 示例数据：系统公告
+--
+INSERT INTO `sq_notice` (`ID`, `title`, `content`, `time`, `status`, `sort`) VALUES
+(1, '温泉PHP授权系统 v12.12 小七二次开发版发布', '欢迎使用温泉PHP网络授权系统 v12.12！\n\n本版本由小七二次开发，主要更新内容：\n1. 数据库表分离，一级/二级管理员独立管理\n2. 密码安全升级，使用 password_hash 加密\n3. 新增云黑等级系统、云白系统\n4. 新增公告管理、在线更新中心\n5. 界面全面美化，紫蓝渐变玻璃态设计\n\n开源地址：https://github.com/AyMzz-dev/-', UNIX_TIMESTAMP(), 1, 10),
+(2, '关于系统开源说明', '本系统采用 AGPL-3.0 开源协议发布。\n\n您可以自由使用、修改和分发本软件，但如果您修改后通过网络提供服务，必须公开修改后的源代码。\n\n严谨用于任何违反中华人民共和国法律法规的用途。\n\n感谢您的使用！', UNIX_TIMESTAMP(), 1, 5);
+
+--
 -- 数据迁移：sq_admin → sq_admin_1 / sq_admin_2（已存在旧数据时执行）
 -- 注意：如果 sq_admin 表不存在或已迁移过，这些语句会跳过，不影响执行
 --
