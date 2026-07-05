@@ -1,2 +1,2 @@
 <?php
-$G['siteinfo']['ver'] = '12.12';
+$G['siteinfo']['ver'] = '12.13';

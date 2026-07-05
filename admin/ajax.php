@@ -467,31 +467,102 @@ switch ($_GET['mod']){
         die($i);
         break;
     case 'checkupdate':
-		die(-1);
-        $newver = curl_request('http://download.bwenquan.com/update/shouquanver.txt');
-
-        if ($newver > $G['siteinfo']['ver'] ){
-            die('1');
-        }else{
-            die('-1');
+        // 通过 GitHub 比较版本
+        $localVer = str_replace('.','',$G['siteinfo']['ver']);
+        $needUpdate = false;
+        if (!empty($_POST['remote_sha'])){
+            $remoteCheck = @file_get_contents('https://raw.githubusercontent.com/AyMzz-dev/-/master/function/ver.inc.php');
+            if ($remoteCheck){
+                preg_match("/'ver'\s*=>\s*'([^']+)'/", $remoteCheck, $matches);
+                if (!empty($matches[1])){
+                    $remoteVer = str_replace('.','',$matches[1]);
+                    if (intval($remoteVer) > intval($localVer)){
+                        $needUpdate = true;
+                    }
+                }
+            }
         }
-
+        die(json_encode(array('need_update'=>$needUpdate)));
         break;
-    case 'downloadupdatepacks':
+    case 'autoupdate':
         set_time_limit(0);
-        if(!getFile('http://download.wenquan6.cn/upload/shouquan/'.$G['siteinfo']['ver'].'.zip','../update/',$G['siteinfo']['ver'].'.zip')){
-            die(json_encode(array('code'=>'-1','msg'=>'下载文件失败！')));
-        }else{
-            die(json_encode(array('code'=>'1')));
+        ignore_user_abort(true);
+        
+        $repoUrl = 'https://github.com/AyMzz-dev/-/archive/refs/heads/master.zip';
+        $tmpZip = sys_get_temp_dir().'/wenquan_update_'.time().'.zip';
+        $tmpDir = sys_get_temp_dir().'/wenquan_update_'.time();
+        
+        $zipData = @file_get_contents($repoUrl);
+        if (!$zipData || strlen($zipData) < 1000) {
+            die(json_encode(array('code'=>-1,'msg'=>'下载更新包失败，请检查网络或GitHub仓库')));
         }
-        break;
-    case 'unzippacks':
-        set_time_limit(0);
-        if (!file_exists('../update/'.$G['siteinfo']['ver'].'.zip')){
-            die(json_encode(array('code'=>'-1','msg'=>'更新包文件不存在，无法解压')));
+        file_put_contents($tmpZip, $zipData);
+        
+        $zip = new ZipArchive();
+        if ($zip->open($tmpZip) !== true) {
+            unlink($tmpZip);
+            die(json_encode(array('code'=>-2,'msg'=>'解压更新包失败，请检查服务器PHP Zip扩展')));
         }
-        get_zip_originalsize('../update/'.$G['siteinfo']['ver'].'.zip','../update/');
-        die(json_encode(array('code'=>'1','updateurl'=>'../../update/'.$G['siteinfo']['ver'].'/install.php')));
+        $zip->extractTo($tmpDir);
+        $zip->close();
+        unlink($tmpZip);
+        
+        $subDirs = scandir($tmpDir);
+        $srcDir = $tmpDir;
+        foreach ($subDirs as $d) {
+            if ($d != '.' && $d != '..' && is_dir($tmpDir.'/'.$d)) {
+                $srcDir = $tmpDir.'/'.$d;
+                break;
+            }
+        }
+        
+        $excludeFiles = array('config.inc.php', 'install.php', '.gitignore', 'README.md', 'LICENSE', 'CHANGELOG', '部署清单.md');
+        $excludeDirs = array('.git', '.trae-cn', 'upload');
+        $updatedFiles = 0;
+        $errors = 0;
+        
+        function copyUpdateFiles2($src, $dst, $excludeFiles, $excludeDirs, &$updatedFiles, &$errors) {
+            if (!is_dir($src)) return;
+            if (!is_dir($dst)) @mkdir($dst, 0755, true);
+            $dir = opendir($src);
+            while (($file = readdir($dir)) !== false) {
+                if ($file == '.' || $file == '..') continue;
+                if (in_array($file, $excludeDirs)) continue;
+                $srcPath = $src.'/'.$file;
+                $dstPath = $dst.'/'.$file;
+                if (is_dir($srcPath)) {
+                    copyUpdateFiles2($srcPath, $dstPath, $excludeFiles, $excludeDirs, $updatedFiles, $errors);
+                } else {
+                    if (in_array($file, $excludeFiles)) continue;
+                    if (@copy($srcPath, $dstPath)) {
+                        $updatedFiles++;
+                    } else {
+                        $errors++;
+                    }
+                }
+            }
+            closedir($dir);
+        }
+        
+        $webRoot = dirname(dirname(__DIR__));
+        copyUpdateFiles2($srcDir, $webRoot, $excludeFiles, $excludeDirs, $updatedFiles, $errors);
+        
+        function delTree2($dir) {
+            if (!is_dir($dir)) return;
+            $files = array_diff(scandir($dir), array('.','..'));
+            foreach ($files as $file) {
+                (is_dir("$dir/$file")) ? delTree2("$dir/$file") : @unlink("$dir/$file");
+            }
+            @rmdir($dir);
+        }
+        delTree2($tmpDir);
+        
+        die(json_encode(array(
+            'code' => ($errors == 0) ? 1 : 0,
+            'msg' => '更新完成！成功更新 '.$updatedFiles.' 个文件'.($errors > 0 ? '，'.$errors.' 个文件失败' : ''),
+            'updated' => $updatedFiles,
+            'errors' => $errors
+        )));
         break;
     case 'keylog':
         if (!$result = $db->select_limit_row('sq_log_kami','*','',0,array('keyid'=>$_POST['keyid']),'AND',"ORDER BY time DESC")){
@@ -1187,23 +1258,6 @@ switch ($_GET['mod']){
         break;
     case 'getversion':
         die(json_encode(array('version'=>str_replace('.','',$G['siteinfo']['ver']))));
-        break;
-    case 'checkupdate':
-        $localVer = str_replace('.','',$G['siteinfo']['ver']);
-        $needUpdate = false;
-        if (!empty($_POST['remote_sha'])){
-            $remoteCheck = @file_get_contents('https://raw.githubusercontent.com/AyMzz-dev/-/master/function/ver.inc.php');
-            if ($remoteCheck){
-                preg_match("/'ver'\s*=>\s*'([^']+)'/", $remoteCheck, $matches);
-                if (!empty($matches[1])){
-                    $remoteVer = str_replace('.','',$matches[1]);
-                    if (intval($remoteVer) > intval($localVer)){
-                        $needUpdate = true;
-                    }
-                }
-            }
-        }
-        die(json_encode(array('need_update'=>$needUpdate)));
         break;
     default:
         die('What the fuck');

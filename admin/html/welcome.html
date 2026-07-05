@@ -100,6 +100,9 @@
                         <button class="layui-btn layui-btn-normal layui-btn-lg" id="btnCheckUpdate" onclick="checkUpdateNow()">
                             <i class="layui-icon">&#xe669;</i> 立即检查更新
                         </button>
+                        <button class="layui-btn layui-btn-lg" id="btnDoUpdate" onclick="doUpdate()" style="display:none;background:linear-gradient(135deg,#6a11cb,#2575fc);border:none;">
+                            <i class="layui-icon">&#xe653;</i> 一键更新
+                        </button>
                         <div style="margin-top:10px;font-size:12px;color:#999;" id="updateResult"></div>
                     </div>
                 </div>
@@ -241,8 +244,10 @@
                             success: function(check) {
                                 if (check.need_update) {
                                     $('#updateStatusText').html('<span style="color:#ff4d4f;font-weight:bold;">发现新版本，建议更新！</span>');
+                                    $('#btnDoUpdate').show();
                                 } else {
                                     $('#updateStatusText').html('<span style="color:#52c41a;font-weight:bold;">当前已是最新版本</span>');
+                                    $('#btnDoUpdate').hide();
                                 }
                                 $('#updateResult').html('最新提交: ' + remoteSha + '<br>' + commitMsg + '<br>' + commitDate);
                             },
@@ -268,6 +273,50 @@
                 $('#updateStatusText').html('<span style="color:#ff4d4f;">获取本地版本失败</span>');
                 btn.prop('disabled', false).html('<i class="layui-icon">&#xe669;</i> 重新检测');
             }
+        });
+    }
+
+    function doUpdate() {
+        var btn = $('#btnDoUpdate');
+        layer.confirm('确定要自动更新系统吗？<br><br><span style="color:#ff4d4f;">注意：更新过程中请勿关闭页面，更新完成后刷新即可。</span>', {
+            title: '一键更新确认',
+            btn: ['确定更新', '取消'],
+            area: ['450px', '220px']
+        }, function(index) {
+            layer.close(index);
+            btn.prop('disabled', true).html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 更新中...');
+            $('#btnCheckUpdate').prop('disabled', true);
+            $('#updateStatusText').html('<span style="color:#1890ff;">正在从 GitHub 下载更新...</span>');
+            
+            var loading = layer.load(2, {shade: [0.5, '#000']});
+            $.ajax({
+                url: '../ajax.php?mod=autoupdate',
+                type: 'POST',
+                dataType: 'json',
+                timeout: 120000,
+                success: function(data) {
+                    layer.close(loading);
+                    if (data.code == 1) {
+                        $('#updateStatusText').html('<span style="color:#52c41a;font-weight:bold;">✓ 更新成功！已更新 ' + data.updated + ' 个文件</span>');
+                        $('#updateResult').html('请刷新页面以应用更新。');
+                        layer.alert('更新成功！已更新 ' + data.updated + ' 个文件。<br>请刷新页面以应用最新版本。', {icon: 1, title: '更新完成'});
+                    } else {
+                        $('#updateStatusText').html('<span style="color:#ff4d4f;">更新部分完成，' + data.errors + ' 个文件失败</span>');
+                        layer.alert(data.msg, {icon: 2, title: '更新提示'});
+                    }
+                },
+                error: function(xhr) {
+                    layer.close(loading);
+                    var msg = '更新请求失败';
+                    if (xhr.status === 0) msg = '网络超时或服务器无响应';
+                    $('#updateStatusText').html('<span style="color:#ff4d4f;">' + msg + '</span>');
+                    layer.alert(msg + '<br>请检查服务器PHP Zip扩展是否安装，或手动更新。', {icon: 2, title: '更新失败'});
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="layui-icon">&#xe653;</i> 一键更新');
+                    $('#btnCheckUpdate').prop('disabled', false);
+                }
+            });
         });
     }
 

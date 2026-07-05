@@ -99,6 +99,9 @@
                 <button class="layui-btn layui-btn-normal" id="btnCheck" onclick="checkUpdate()">
                     <i class="layui-icon">&#xe669;</i> 重新检测
                 </button>
+                <button class="layui-btn" id="btnDoUpdate" onclick="doUpdate()" style="display:none;background:linear-gradient(135deg,#6a11cb,#2575fc);border:none;">
+                    <i class="layui-icon">&#xe653;</i> 一键更新
+                </button>
                 <a href="https://github.com/AyMzz-dev/-" target="_blank" class="layui-btn layui-btn-warm">
                     <i class="layui-icon">&#xe64e;</i> 前往仓库
                 </a>
@@ -204,13 +207,58 @@
             success: function(data) {
                 if (data.need_update) {
                     $('#updateStatus').html('<span class="status-dot dot-red"></span><b style="color:#ff4d4f;">发现新版本，建议更新！</b>');
+                    $('#btnDoUpdate').show();
                 } else {
                     $('#updateStatus').html('<span class="status-dot dot-green"></span><b style="color:#52c41a;">已是最新版本</b>');
+                    $('#btnDoUpdate').hide();
                 }
             },
             error: function() {
                 $('#updateStatus').html('<span class="status-dot dot-blue"></span>请前往 GitHub 仓库手动检查更新');
             }
+        });
+    }
+
+    function doUpdate() {
+        var btn = $('#btnDoUpdate');
+        layer.confirm('确定要自动更新系统吗？<br><br><span style="color:#ff4d4f;">注意：更新过程中请勿关闭页面，更新完成后请刷新页面。</span>', {
+            title: '一键更新确认',
+            btn: ['确定更新', '取消'],
+            area: ['450px', '220px']
+        }, function(index) {
+            layer.close(index);
+            btn.prop('disabled', true).html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 更新中...');
+            $('#btnCheck').prop('disabled', true);
+            $('#updateStatus').html('<span class="status-dot dot-blue"></span>正在从 GitHub 下载更新...');
+            
+            var loading = layer.load(2, {shade: [0.5, '#000']});
+            $.ajax({
+                url: '../ajax.php?mod=autoupdate',
+                type: 'POST',
+                dataType: 'json',
+                timeout: 120000,
+                success: function(data) {
+                    layer.close(loading);
+                    if (data.code == 1) {
+                        $('#updateStatus').html('<span class="status-dot dot-green"></span><b style="color:#52c41a;">✓ 更新成功！已更新 ' + data.updated + ' 个文件</b>');
+                        layer.alert('更新成功！已更新 ' + data.updated + ' 个文件。<br>请刷新页面以应用最新版本。', {icon: 1, title: '更新完成'});
+                    } else {
+                        $('#updateStatus').html('<span class="status-dot dot-red"></span>更新部分完成，' + data.errors + ' 个文件失败');
+                        layer.alert(data.msg, {icon: 2, title: '更新提示'});
+                    }
+                },
+                error: function(xhr) {
+                    layer.close(loading);
+                    var msg = '更新请求失败';
+                    if (xhr.status === 0) msg = '网络超时或服务器无响应';
+                    $('#updateStatus').html('<span class="status-dot dot-red"></span>' + msg);
+                    layer.alert(msg + '<br>请检查服务器PHP Zip扩展是否安装，或手动更新。', {icon: 2, title: '更新失败'});
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="layui-icon">&#xe653;</i> 一键更新');
+                    $('#btnCheck').prop('disabled', false);
+                }
+            });
         });
     }
 </script>
