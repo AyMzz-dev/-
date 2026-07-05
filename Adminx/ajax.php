@@ -1315,10 +1315,28 @@ switch ($_GET['mod']){
         die(json_encode(array('present'=>$info['discount'],'info'=>$info['subordinate'])));
         break;
     case 'getnotice':
-        die('暂无');
+        $notices = $db->select_limit_row('sq_notice','*',0,20,array('status'=>1),'AND','ORDER BY sort DESC, ID DESC');
+        if (empty($notices)){
+            die('<div style="text-align:center;padding:30px;color:#999;"><i class="layui-icon" style="font-size:40px;">&#xe645;</i><p style="margin-top:10px;">暂无公告</p></div>');
+        }
+        $html = '';
+        foreach ($notices as $v){
+            $html .= '<div style="padding:12px 0;border-bottom:1px solid #f0f0f0;">';
+            $html .= '<div style="font-weight:600;color:#333;margin-bottom:5px;"><i class="layui-icon" style="color:#6a11cb;">&#xe645;</i> '.htmlspecialchars($v['title']).' <span style="font-size:12px;color:#999;">'.Get_Date($v['time']).'</span></div>';
+            $html .= '<div style="color:#666;line-height:1.6;">'.nl2br(htmlspecialchars($v['content'])).'</div>';
+            $html .= '</div>';
+        }
+        die($html);
         break;
     case 'getuplog':
-        die('暂无.');
+        // 尝试从 GitHub 获取更新日志
+        $uplog = @file_get_contents('https://raw.githubusercontent.com/AyMzz-dev/-/master/CHANGELOG');
+        if ($uplog){
+            die($uplog);
+        }
+        // 备用：本地版本
+        $ver = $G['siteinfo']['ver'];
+        die("温泉PHP网络授权系统 v{$ver}\n\n开源地址：https://github.com/AyMzz-dev/-\n\n如需查看最新更新日志，请前往 GitHub 仓库。");
         break;
     case 'gettoken':
         $result = $db->select_first_row('sq_admin_1','accesstoken',array('ID'=>$_SESSION['admin_id']),'AND');
