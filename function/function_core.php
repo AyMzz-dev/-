@@ -114,7 +114,7 @@ if ($auth['code'] == '1'){
 }
 */
 
-$ServerURL = 'https://new.api.shouquan.wenquan6.cn:99/api.php';
+$ServerURL = ''; // 云端授权服务已停用，使用本地授权
 include 'ver.inc.php';
 include_once 'MailTipsTemplate.php';
 /*
@@ -347,7 +347,7 @@ function curl_request($url, $post = '', $cookie = '', $returnCookie = 0)
 
 
 /**
- * 调用温泉云平台进行邮件发送
+ * 调用邮件服务进行邮件发送
  */
 function sendemail($title, $contant, $tomail, &$msg = '', $debug = false)
 {

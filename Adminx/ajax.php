@@ -1476,7 +1476,7 @@ switch ($_GET['mod']){
         }
         // 备用：本地版本
         $ver = $G['siteinfo']['ver'];
-        die("温泉PHP网络授权系统 v{$ver}\n\n开源地址：https://github.com/AyMzz-dev/-\n\n如需查看最新更新日志，请前往 GitHub 仓库。");
+        die("小七PHP网络授权系统 v{$ver}\n\n开源地址：https://github.com/AyMzz-dev/-\n\n如需查看最新更新日志，请前往 GitHub 仓库。");
         break;
     case 'gettoken':
         $result = $db->select_first_row('sq_admin_1','accesstoken',array('ID'=>$_SESSION['admin_id']),'AND');
@@ -1809,7 +1809,7 @@ switch ($_GET['mod']){
             $backinfo['msg'] = '';
             $backinfo['count'] = $db->select_count_row('sq_site');
             foreach ($result as $value){
-                $value['type'] = $value['type'] == '0' ? '温泉授权系统' : '南逸授权系统';
+                $value['type'] = $value['type'] == '0' ? '小七授权系统' : '南逸授权系统';
                 $backinfo['data'][] = $value;
             }
             die(json_encode($backinfo));
