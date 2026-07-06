@@ -40,4 +40,5 @@ desktop.ini
 /.trae-cn/
 
 # 上传临时目录
-/upload/
+/upload/server/go/*.exe
+server/go/*.db
