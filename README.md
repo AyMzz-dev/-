@@ -109,6 +109,45 @@ INSERT INTO sq_admin_1 (ID, username, password, loginip, logintime, qq, lastacce
 二级后台：/admin
 用户后台：/user
 
+### 一键部署脚本
+
+项目提供 `deploy.sh` 一键部署脚本，自动从 GitHub 下载最新代码并同步到服务器：
+
+```bash
+# 部署到当前目录
+cd /www/wwwroot/你的域名
+bash deploy.sh
+
+# 或指定目标目录
+bash deploy.sh /www/wwwroot/你的域名
+```
+
+**脚本自动完成：**
+1. 从 GitHub 下载最新 master.zip
+2. 同步文件到目标目录（自动排除 `config.inc.php` 保留数据库配置）
+3. 自动备份并恢复 config.inc.php（数据库配置不变）
+4. 执行数据库迁移（创建 `sq_notice` 公告表）
+5. 设置文件权限
+
+**依赖要求：** `curl`、`unzip`、`rsync`、`php`、`mysql`
+
+```bash
+# CentOS
+yum install -y curl unzip rsync php mysql
+
+# Ubuntu/Debian
+apt install -y curl unzip rsync php mysql-client
+```
+
+### 在线更新
+
+系统内置自动更新功能，无需手动操作：
+
+1. 登录后台 → 欢迎页 → 点击"立即检查更新"
+2. 系统逐文件 MD5 对比 GitHub 仓库，列出所有需要更新的文件
+3. 点击"一键更新"自动下载最新代码并替换，保留 `config.inc.php`
+4. 首次使用需执行数据库迁移（见下方）
+
 ### 部署须知
 
 上传到服务器时，以下核心文件必须同步更新：
