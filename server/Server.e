@@ -1,39 +1,37 @@
 .版本 2
 .程序集 窗口程序集_启动窗口
 .程序集变量 服务器, 网络服务器
-.程序集变量 MySQL, MySQL连接
+.程序集变量 数据库, Sqlite数据库
 .程序集变量 端口, 整数型
-.程序集变量 输出列表项, 整数型
+.程序集变量 数据库路径, 文本型
 
 .子程序 __启动窗口_创建完毕
     ' 初始化界面
     编辑框_端口.内容 ＝ "99"
-    编辑框_数据库地址.内容 ＝ "127.0.0.1"
-    编辑框_数据库端口.内容 ＝ "3306"
-    编辑框_数据库名.内容 ＝ "auth_server"
-    编辑框_数据库用户.内容 ＝ "root"
-    编辑框_数据库密码.内容 ＝ ""
-    编辑框_数据库密码.密码遮盖字符 ＝ "*"
+    
+    ' 数据库文件默认放在程序同目录
+    数据库路径 ＝ 取运行目录 () ＋ "\auth.db"
+    编辑框_数据库路径.内容 ＝ 数据库路径
+    
     状态条1.置文本 (0, "就绪 - 等待启动")
     按钮_停止.禁止 ＝ 真
 
 .子程序 _按钮_启动_被单击
     ' 连接数据库
-    如果真 (MySQL.是否已连接 ())
-        MySQL.断开 ()
+    如果真 (数据库.是否打开 ())
+        数据库.关闭 ()
     如果真结束
     
-    如果 (MySQL.连接 (编辑框_数据库地址.内容, 编辑框_数据库用户.内容, 编辑框_数据库密码.内容, 编辑框_数据库名.内容, 到整数 (编辑框_数据库端口.内容)))
-        添加日志 ("[数据库] 连接成功 " ＋ 编辑框_数据库地址.内容 ＋ ":" ＋ 编辑框_数据库端口.内容)
+    数据库路径 ＝ 编辑框_数据库路径.内容
+    如果 (数据库.打开 (数据库路径, 假))
+        添加日志 ("[数据库] 连接成功 " ＋ 数据库路径)
         状态条1.置文本 (0, "数据库已连接")
+        创建数据表 ()
     否则
-        添加日志 ("[错误] 数据库连接失败！")
-        信息框 ("数据库连接失败，请检查配置！", 16, , )
+        添加日志 ("[错误] 数据库打开失败！")
+        信息框 ("数据库打开失败，请检查路径！", 16, , )
         返回 ()
     如果结束
-    
-    ' 创建数据表
-    创建数据表 ()
     
     ' 启动HTTP服务器
     端口 ＝ 到整数 (编辑框_端口.内容)
@@ -58,8 +56,8 @@
     如果 (服务器.是否运行 ())
         服务器.停止 ()
     如果结束
-    如果 (MySQL.是否已连接 ())
-        MySQL.断开 ()
+    如果 (数据库.是否打开 ())
+        数据库.关闭 ()
     如果结束
 
 .子程序 添加日志
@@ -70,30 +68,26 @@
 
 .子程序 创建数据表
     ' 授权站点表
-    MySQL.执行SQL语句 (“CREATE TABLE IF NOT EXISTS `auth_sites` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `domain` VARCHAR(255) NOT NULL COMMENT '域名',
-        `sitekey` VARCHAR(64) NOT NULL COMMENT '站点密钥',
-        `status` INT DEFAULT 1 COMMENT '1=正常 0=禁用',
-        `note` VARCHAR(255) DEFAULT '' COMMENT '备注',
-        `create_time` INT NOT NULL COMMENT '创建时间戳',
-        `last_check_time` INT DEFAULT 0 COMMENT '最后验证时间',
-        UNIQUE KEY `idx_sitekey` (`sitekey`),
-        KEY `idx_domain` (`domain`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='授权站点表'”)
+    数据库.执行SQL语句 (“CREATE TABLE IF NOT EXISTS auth_sites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        domain TEXT NOT NULL,
+        sitekey TEXT NOT NULL UNIQUE,
+        status INTEGER DEFAULT 1,
+        note TEXT DEFAULT '',
+        create_time INTEGER NOT NULL,
+        last_check_time INTEGER DEFAULT 0
+    )”)
     
     ' 授权日志表
-    MySQL.执行SQL语句 (“CREATE TABLE IF NOT EXISTS `auth_logs` (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `sitekey` VARCHAR(64) NOT NULL,
-        `domain` VARCHAR(255) NOT NULL,
-        `action` VARCHAR(32) NOT NULL COMMENT 'checkauth/sendmail',
-        `ip` VARCHAR(45) NOT NULL,
-        `result` INT DEFAULT 0 COMMENT '返回的code',
-        `create_time` INT NOT NULL,
-        KEY `idx_sitekey` (`sitekey`),
-        KEY `idx_time` (`create_time`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='授权日志表'”)
+    数据库.执行SQL语句 (“CREATE TABLE IF NOT EXISTS auth_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sitekey TEXT NOT NULL,
+        domain TEXT NOT NULL,
+        action TEXT NOT NULL,
+        ip TEXT NOT NULL,
+        result INTEGER DEFAULT 0,
+        create_time INTEGER NOT NULL
+    )”)
     
     添加日志 (“[数据库] 数据表初始化完成”)
 
@@ -101,17 +95,16 @@
 .参数 请求数据, 文本型
 .参数 客户端IP, 文本型
 .局部变量 返回数据, 文本型
-.局部变量 PATH, 文本型
 .局部变量 GET参数, 文本型
 .局部变量 POST数据, 文本型
 .局部变量 模块名, 文本型
 .局部变量 域名, 文本型
 .局部变量 站点密钥, 文本型
-.局部变量 JSON, 类_json
 
     ' 解析HTTP请求
     如果真 (取文本长度 (请求数据) ＜ 10)
         返回数据 ＝ 生成HTTP响应 (“400 Bad Request”, “请求无效”)
+        服务器.发送数据 (客户端IP, 返回数据)
         返回 ()
     如果真结束
     
@@ -131,7 +124,7 @@
     判断 (模块名 ＝ “sendmail”)
         返回数据 ＝ 处理发送邮件 (域名, 站点密钥, 客户端IP, POST数据)
     默认
-        返回数据 ＝ 生成HTTP响应 (“200 OK”, 生成JSON (0, “未知模块”, “参数错误”))
+        返回数据 ＝ 生成HTTP响应 (“200 OK”, 生成JSON (0, “未知模块”, “”))
     判断结束
     
     服务器.发送数据 (客户端IP, 返回数据)
@@ -153,44 +146,39 @@
     如果真结束
     
     ' 查询授权
-    SQL ＝ “SELECT `status` FROM `auth_sites` WHERE `sitekey`='” ＋ 站点密钥 ＋ “' AND `domain`='” ＋ 域名 ＋ “'”
-    如果 (MySQL.执行SQL语句 (SQL))
-        记录集 ＝ MySQL.取记录集 ()
-        如果 (记录集 ＞ 0)
-            MySQL.读字段值 (记录集, “status”, 状态)
-            MySQL.释放记录集 (记录集)
-            
-            如果 (状态 ＝ 1)
-                ' 授权有效
-                返回JSON ＝ 生成JSON (1, “授权有效”, “”)
-                结果 ＝ 1
-                添加日志 (“[验证] 通过 - ” ＋ 域名)
-            否则
-                ' 授权被禁用
-                提示 ＝ “您的授权已被封禁，请联系管理员QQ:” ＋ 读配置项 (“config.ini”, “system”, “admin_qq”, “45294701”)
-                返回JSON ＝ 生成JSON (-3, 提示, 提示)
-                结果 ＝ -3
-                添加日志 (“[验证] 被禁用 - ” ＋ 域名)
-            如果结束
-        ​否则
-            ' 授权不存在
-            返回JSON ＝ 生成JSON (0, “授权不存在”, “域名或密钥不匹配”)
-            结果 ＝ 0
-            添加日志 (“[验证] 未授权 - ” ＋ 域名)
+    SQL ＝ “SELECT status FROM auth_sites WHERE sitekey='” ＋ 站点密钥 ＋ “' AND domain='” ＋ 域名 ＋ “'”
+    记录集 ＝ 数据库.查询 (SQL)
+    
+    如果 (记录集 ＞ 0)
+        数据库.读字段值 (记录集, “status”, 状态)
+        数据库.关闭记录集 (记录集)
+        
+        如果 (状态 ＝ 1)
+            ' 授权有效
+            返回JSON ＝ 生成JSON (1, “授权有效”, “”)
+            结果 ＝ 1
+            添加日志 (“[验证] 通过 - ” ＋ 域名)
+        否则
+            ' 授权被禁用
+            提示 ＝ “您的授权已被封禁，请联系管理员”
+            返回JSON ＝ 生成JSON (-3, 提示, 提示)
+            结果 ＝ -3
+            添加日志 (“[验证] 被禁用 - ” ＋ 域名)
         如果结束
-    ​否则
-        返回JSON ＝ 生成JSON (0, “数据库错误”, “查询失败”)
+    否则
+        ' 授权不存在
+        返回JSON ＝ 生成JSON (0, “授权不存在”, “域名或密钥不匹配”)
         结果 ＝ 0
-        添加日志 (“[错误] 数据库查询失败”)
+        添加日志 (“[验证] 未授权 - ” ＋ 域名)
     如果结束
     
     ' 记录日志
-    SQL ＝ “INSERT INTO `auth_logs` (`sitekey`,`domain`,`action`,`ip`,`result`,`create_time`) VALUES ('” ＋ 站点密钥 ＋ “','” ＋ 域名 ＋ “','checkauth','” ＋ 客户端IP ＋ “',” ＋ 到文本 (结果) ＋ “,” ＋ 到文本 (取时间间隔 (取现行时间 (), [1970年1月1日], 8)) ＋ “)”
-    MySQL.执行SQL语句 (SQL)
+    SQL ＝ “INSERT INTO auth_logs (sitekey,domain,action,ip,result,create_time) VALUES ('” ＋ 站点密钥 ＋ “','” ＋ 域名 ＋ “','checkauth','” ＋ 客户端IP ＋ “',” ＋ 到文本 (结果) ＋ “,” ＋ 到文本 (取时间戳 ()) ＋ “)”
+    数据库.执行SQL语句 (SQL)
     
     ' 更新最后验证时间
-    SQL ＝ “UPDATE `auth_sites` SET `last_check_time`=” ＋ 到文本 (取时间间隔 (取现行时间 (), [1970年1月1日], 8)) ＋ “ WHERE `sitekey`='” ＋ 站点密钥 ＋ “'”
-    MySQL.执行SQL语句 (SQL)
+    SQL ＝ “UPDATE auth_sites SET last_check_time=” ＋ 到文本 (取时间戳 ()) ＋ “ WHERE sitekey='” ＋ 站点密钥 ＋ “'”
+    数据库.执行SQL语句 (SQL)
     
     返回 (生成HTTP响应 (“200 OK”, 返回JSON))
 
@@ -216,15 +204,14 @@
     
     添加日志 (“[邮件] 收件人=” ＋ 收件人 ＋ “ 标题=” ＋ 标题)
     
-    ' 这里调用邮件发送 （使用连接发信服务器 / 发送邮件 命令）
-    ' 邮件发送功能需要 SMTP 配置，请自行配置 config.ini 中的邮件参数
-    ' 如果不需要邮件功能，直接返回成功即可
+    ' 邮件发送功能（可选，需要配置SMTP）
+    ' 暂时返回成功
     
-    返回JSON ＝ 生成JSON (1, “发送成功”, “邮件已发送”)
+    返回JSON ＝ 生成JSON (1, “发送成功”, “”)
     结果 ＝ 1
     
     ' 记录日志
-    MySQL.执行SQL语句 (“INSERT INTO `auth_logs` (`sitekey`,`domain`,`action`,`ip`,`result`,`create_time`) VALUES ('” ＋ 站点密钥 ＋ “','” ＋ 域名 ＋ “','sendmail','” ＋ 客户端IP ＋ “',” ＋ 到文本 (结果) ＋ “,” ＋ 到文本 (取时间间隔 (取现行时间 (), [1970年1月1日], 8)) ＋ “)”)
+    数据库.执行SQL语句 (“INSERT INTO auth_logs (sitekey,domain,action,ip,result,create_time) VALUES ('” ＋ 站点密钥 ＋ “','” ＋ 域名 ＋ “','sendmail','” ＋ 客户端IP ＋ “',” ＋ 到文本 (结果) ＋ “,” ＋ 到文本 (取时间戳 ()) ＋ “)”)
     
     返回 (生成HTTP响应 (“200 OK”, 返回JSON))
 
@@ -232,26 +219,25 @@
 .参数 Code, 整数型
 .参数 Msg, 文本型
 .参数 Tips, 文本型
-.局部变量 JSON, 类_json
 .局部变量 结果, 文本型
 
-    JSON.置属性 (“code”, 到文本 (Code))
+    结果 ＝ “{” ＋ #引号 ＋ “code” ＋ #引号 ＋ “:” ＋ 到文本 (Code)
     如果真 (Msg ≠ “”)
-        JSON.置属性 (“msg”, Msg)
+        结果 ＝ 结果 ＋ “,” ＋ #引号 ＋ “msg” ＋ #引号 ＋ “:” ＋ #引号 ＋ Msg ＋ #引号
     如果真结束
     如果真 (Tips ≠ “”)
-        JSON.置属性 (“tips”, Tips)
+        结果 ＝ 结果 ＋ “,” ＋ #引号 ＋ “tips” ＋ #引号 ＋ “:” ＋ #引号 ＋ Tips ＋ #引号
     如果真结束
+    结果 ＝ 结果 ＋ “}”
     
-    结果 ＝ JSON.取数据文本 ()
     返回 (结果)
 
 .子程序 生成HTTP响应
-.参数 状态行, 文本型
+.参数 状态描述, 文本型
 .参数 内容, 文本型
 .局部变量 响应, 文本型
 
-    响应 ＝ “HTTP/1.1 ” ＋ 状态行 ＋ #换行符
+    响应 ＝ “HTTP/1.1 ” ＋ 状态描述 ＋ #换行符
     响应 ＝ 响应 ＋ “Content-Type: application/json; charset=utf-8” ＋ #换行符
     响应 ＝ 响应 ＋ “Content-Length: ” ＋ 到文本 (取文本长度 (内容)) ＋ #换行符
     响应 ＝ 响应 ＋ “Access-Control-Allow-Origin: *” ＋ #换行符
@@ -371,13 +357,9 @@
     
     返回 (结果)
 
-.子程序 读配置项
-.参数 文件名, 文本型
-.参数 节名, 文本型
-.参数 键名, 文本型
-.参数 默认值, 文本型
-    ' 使用易语言内置的读配置项
-    返回 (取文本注册项 (4, “Software\小七授权服务端\” ＋ 节名 ＋ “\” ＋ 键名, 默认值))
+.子程序 取时间戳
+    ' 返回当前Unix时间戳
+    返回 (到整数 (取时间间隔 (取现行时间 (), [1970年1月1日], 8)))
 
 .子程序 _按钮_添加授权_被单击
 .局部变量 域名, 文本型
@@ -399,9 +381,9 @@
         返回 ()
     如果真结束
     
-    SQL ＝ “INSERT INTO `auth_sites` (`domain`,`sitekey`,`status`,`note`,`create_time`) VALUES ('” ＋ 域名 ＋ “','” ＋ 站点密钥 ＋ “',1,'” ＋ 备注 ＋ “',” ＋ 到文本 (取时间间隔 (取现行时间 (), [1970年1月1日], 8)) ＋ “)”
+    SQL ＝ “INSERT INTO auth_sites (domain,sitekey,status,note,create_time) VALUES ('” ＋ 域名 ＋ “','” ＋ 站点密钥 ＋ “',1,'” ＋ 备注 ＋ “',” ＋ 到文本 (取时间戳 ()) ＋ “)”
     
-    如果 (MySQL.执行SQL语句 (SQL))
+    如果 (数据库.执行SQL语句 (SQL))
         添加日志 (“[授权] 添加成功 - ” ＋ 域名)
         信息框 (“授权添加成功！请将密钥复制给客户。” ＋ #换行符 ＋ #换行符 ＋ “站点密钥: ” ＋ 站点密钥, 64, , )
         编辑框_添加域名.内容 ＝ “”
@@ -414,11 +396,11 @@
     如果结束
 
 .子程序 _按钮_生成密钥_被单击
-    .局部变量 密钥, 文本型
-    .局部变量 字符表, 文本型
-    .局部变量 i, 整数型
-    .局部变量 随机位置, 整数型
-    
+.局部变量 密钥, 文本型
+.局部变量 字符表, 文本型
+.局部变量 i, 整数型
+.局部变量 随机位置, 整数型
+
     字符表 ＝ “ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789”
     密钥 ＝ “”
     计次循环首 (64, i)
@@ -428,38 +410,37 @@
     编辑框_添加密钥.内容 ＝ 密钥
 
 .子程序 刷新授权列表
-    .局部变量 SQL, 文本型
-    .局部变量 记录集, 整数型
-    .局部变量 域名, 文本型
-    .局部变量 站点密钥, 文本型
-    .局部变量 状态, 整数型
-    .局部变量 备注, 文本型
-    .局部变量 创建时间, 整数型
-    .局部变量 最后验证, 整数型
-    .局部变量 索引, 整数型
-    
+.局部变量 SQL, 文本型
+.局部变量 记录集, 整数型
+.局部变量 域名, 文本型
+.局部变量 站点密钥, 文本型
+.局部变量 状态, 整数型
+.局部变量 备注, 文本型
+.局部变量 创建时间, 整数型
+.局部变量 最后验证, 整数型
+.局部变量 索引, 整数型
+
     超级列表框_授权列表.全部删除 ()
     
-    SQL ＝ “SELECT * FROM `auth_sites` ORDER BY `id` DESC”
-    如果 (MySQL.执行SQL语句 (SQL))
-        记录集 ＝ MySQL.取记录集 ()
-        判断循环首 (MySQL.到下一行 (记录集))
-            MySQL.读字段值 (记录集, “domain”, 域名)
-            MySQL.读字段值 (记录集, “sitekey”, 站点密钥)
-            MySQL.读字段值 (记录集, “status”, 状态)
-            MySQL.读字段值 (记录集, “note”, 备注)
-            MySQL.读字段值 (记录集, “create_time”, 创建时间)
-            MySQL.读字段值 (记录集, “last_check_time”, 最后验证)
-            
-            索引 ＝ 超级列表框_授权列表.插入表项 (, 域名, , , , )
-            超级列表框_授权列表.置标题 (索引, 1, 取文本左边 (站点密钥, 8) ＋ “...”)
-            超级列表框_授权列表.置标题 (索引, 2, 选择 (状态 ＝ 1, “正常”, “禁用”))
-            超级列表框_授权列表.置标题 (索引, 3, 备注)
-            超级列表框_授权列表.置标题 (索引, 4, 时间戳到文本 (创建时间))
-            超级列表框_授权列表.置标题 (索引, 5, 选择 (最后验证 ＞ 0, 时间戳到文本 (最后验证), “从未验证”))
-        判断循环尾 ()
-        MySQL.释放记录集 (记录集)
-    如果结束
+    SQL ＝ “SELECT * FROM auth_sites ORDER BY id DESC”
+    记录集 ＝ 数据库.查询 (SQL)
+    
+    判断循环首 (数据库.到下一行 (记录集))
+        数据库.读字段值 (记录集, “domain”, 域名)
+        数据库.读字段值 (记录集, “sitekey”, 站点密钥)
+        数据库.读字段值 (记录集, “status”, 状态)
+        数据库.读字段值 (记录集, “note”, 备注)
+        数据库.读字段值 (记录集, “create_time”, 创建时间)
+        数据库.读字段值 (记录集, “last_check_time”, 最后验证)
+        
+        索引 ＝ 超级列表框_授权列表.插入表项 (, 域名, , , , )
+        超级列表框_授权列表.置标题 (索引, 1, 取文本左边 (站点密钥, 8) ＋ “...”)
+        超级列表框_授权列表.置标题 (索引, 2, 选择 (状态 ＝ 1, “正常”, “禁用”))
+        超级列表框_授权列表.置标题 (索引, 3, 备注)
+        超级列表框_授权列表.置标题 (索引, 4, 时间戳到文本 (创建时间))
+        超级列表框_授权列表.置标题 (索引, 5, 选择 (最后验证 ＞ 0, 时间戳到文本 (最后验证), “从未验证”))
+    判断循环尾 ()
+    数据库.关闭记录集 (记录集)
 
 .子程序 时间戳到文本
 .参数 时间戳, 整数型
@@ -471,7 +452,6 @@
 .子程序 _超级列表框_授权列表_右键单击
 .参数 行索引, 整数型
 .局部变量 菜单, 弹出菜单
-.局部变量 选择项, 整数型
 
     如果真 (行索引 ＝ -1)
         返回 ()
@@ -484,44 +464,44 @@
     菜单.弹出菜单 (, , )
 
 .子程序 启用授权
-    .局部变量 行索引, 整数型
-    .局部变量 域名, 文本型
-    
+.局部变量 行索引, 整数型
+.局部变量 域名, 文本型
+
     行索引 ＝ 超级列表框_授权列表.现行选中项
     如果真 (行索引 ＝ -1)
         返回 ()
     如果真结束
     域名 ＝ 超级列表框_授权列表.取标题 (行索引, 0)
-    MySQL.执行SQL语句 (“UPDATE `auth_sites` SET `status`=1 WHERE `domain`='” ＋ 域名 ＋ “'”)
+    数据库.执行SQL语句 (“UPDATE auth_sites SET status=1 WHERE domain='” ＋ 域名 ＋ “'”)
     刷新授权列表 ()
     添加日志 (“[授权] 已启用 - ” ＋ 域名)
 
 .子程序 禁用授权
-    .局部变量 行索引, 整数型
-    .局部变量 域名, 文本型
-    
+.局部变量 行索引, 整数型
+.局部变量 域名, 文本型
+
     行索引 ＝ 超级列表框_授权列表.现行选中项
     如果真 (行索引 ＝ -1)
         返回 ()
     如果真结束
     域名 ＝ 超级列表框_授权列表.取标题 (行索引, 0)
     如果 (信息框 (“确定要禁用 ” ＋ 域名 ＋ “ 的授权吗？禁用后客户端将无法使用！”, 36, “确认禁用”, ))
-        MySQL.执行SQL语句 (“UPDATE `auth_sites` SET `status`=0 WHERE `domain`='” ＋ 域名 ＋ “'”)
+        数据库.执行SQL语句 (“UPDATE auth_sites SET status=0 WHERE domain='” ＋ 域名 ＋ “'”)
         刷新授权列表 ()
         添加日志 (“[授权] 已禁用 - ” ＋ 域名)
     如果结束
 
 .子程序 删除授权
-    .局部变量 行索引, 整数型
-    .局部变量 域名, 文本型
-    
+.局部变量 行索引, 整数型
+.局部变量 域名, 文本型
+
     行索引 ＝ 超级列表框_授权列表.现行选中项
     如果真 (行索引 ＝ -1)
         返回 ()
     如果真结束
     域名 ＝ 超级列表框_授权列表.取标题 (行索引, 0)
     如果 (信息框 (“确定要删除 ” ＋ 域名 ＋ “ 的授权吗？此操作不可恢复！”, 52, “确认删除”, ))
-        MySQL.执行SQL语句 (“DELETE FROM `auth_sites` WHERE `domain`='” ＋ 域名 ＋ “'”)
+        数据库.执行SQL语句 (“DELETE FROM auth_sites WHERE domain='” ＋ 域名 ＋ “'”)
         刷新授权列表 ()
         添加日志 (“[授权] 已删除 - ” ＋ 域名)
     如果结束
