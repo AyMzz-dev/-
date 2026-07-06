@@ -95,7 +95,7 @@
             <div class="layui-colla-item">
                 <h2 class="layui-colla-title">系统更新</h2>
                 <div class="flow-default layui-colla-content layui-show" id="updatePanel">
-                    <div style="text-align:center;padding:30px;">
+                    <div style="text-align:center;padding:30px 30px 15px;">
                         <div style="margin-bottom:15px;color:#666;" id="updateStatusText">检测是否有新版本可用</div>
                         <button class="layui-btn layui-btn-normal layui-btn-lg" id="btnCheckUpdate" onclick="checkUpdateNow()">
                             <i class="layui-icon">&#xe669;</i> 立即检查更新
@@ -105,6 +105,7 @@
                         </button>
                         <div style="margin-top:10px;font-size:12px;color:#999;" id="updateResult"></div>
                     </div>
+                    <div id="fileDiffList" style="display:none;padding:0 15px 15px;max-height:300px;overflow-y:auto;"></div>
                 </div>
             </div>
         </div>
@@ -212,65 +213,44 @@
 
     function checkUpdateNow() {
         var btn = $('#btnCheckUpdate');
-        btn.prop('disabled', true).html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 检测中...');
+        btn.prop('disabled', true).html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 正在对比文件...');
         $('#updateResult').html('');
+        $('#fileDiffList').hide().html('');
 
         $.ajax({
-            url: '../ajax.php?mod=getversion',
+            url: '../ajax.php?mod=checkupdate',
             type: 'POST',
             dataType: 'json',
-            success: function(data) {
-                var localVer = data.version;
-                $.ajax({
-                    url: 'https://api.github.com/repos/AyMzz-dev/-/commits?per_page=1',
-                    type: 'GET',
-                    dataType: 'json',
-                    headers: { 'Accept': 'application/vnd.github.v3+json' },
-                    success: function(res) {
-                        if (!res || res.length === 0) {
-                            $('#updateStatusText').html('<span style="color:#ff4d4f;">无法获取远程版本信息</span>');
-                            $('#updateResult').html('请前往 <a href="https://github.com/AyMzz-dev/-" target="_blank" style="color:#1890ff;">GitHub 仓库</a> 手动查看');
-                            btn.prop('disabled', false).html('<i class="layui-icon">&#xe669;</i> 重新检测');
-                            return;
-                        }
-                        var remoteSha = res[0].sha.substring(0, 7);
-                        var commitMsg = res[0].commit.message.split('\n')[0];
-                        var commitDate = new Date(res[0].commit.author.date).toLocaleString('zh-CN');
-                        $.ajax({
-                            url: '../ajax.php?mod=checkupdate',
-                            type: 'POST',
-                            dataType: 'json',
-                            data: { 'remote_sha': remoteSha },
-                            success: function(check) {
-                                if (check.need_update) {
-                                    $('#updateStatusText').html('<span style="color:#ff4d4f;font-weight:bold;">发现新版本，建议更新！</span>');
-                                    $('#btnDoUpdate').show();
-                                } else {
-                                    $('#updateStatusText').html('<span style="color:#52c41a;font-weight:bold;">当前已是最新版本</span>');
-                                    $('#btnDoUpdate').hide();
-                                }
-                                $('#updateResult').html('最新提交: ' + remoteSha + '<br>' + commitMsg + '<br>' + commitDate);
-                            },
-                            error: function() {
-                                $('#updateStatusText').html('<span style="color:#1890ff;">本地版本: v' + localVer + '</span>');
-                                $('#updateResult').html('最新提交: ' + remoteSha + '<br>' + commitMsg + '<br>' + commitDate);
-                            },
-                            complete: function() {
-                                btn.prop('disabled', false).html('<i class="layui-icon">&#xe669;</i> 重新检测');
-                            }
-                        });
-                    },
-                    error: function(xhr) {
-                        var msg = '网络请求失败';
-                        if (xhr.status === 403) msg = 'GitHub API 调用频率超限，请稍后再试';
-                        else if (xhr.status === 404) msg = '仓库不存在或为私有仓库';
-                        $('#updateStatusText').html('<span style="color:#ff4d4f;">' + msg + '</span>');
-                        btn.prop('disabled', false).html('<i class="layui-icon">&#xe669;</i> 重新检测');
-                    }
-                });
+            timeout: 120000,
+            success: function(check) {
+                if (check.need_update) {
+                    var count = check.file_diff.length;
+                    $('#updateStatusText').html('<span style="color:#ff4d4f;font-weight:bold;">发现 ' + count + ' 个文件需要更新</span>');
+                    $('#btnDoUpdate').show();
+                    
+                    // 展示文件差异列表
+                    var html = '<div style="border:1px solid #ffccc7;background:#fff2f0;border-radius:6px;padding:10px;font-size:13px;">';
+                    html += '<div style="font-weight:bold;margin-bottom:8px;color:#ff4d4f;">需要更新的文件：</div>';
+                    $.each(check.file_diff, function(i, f) {
+                        var badge = f.status === 'new' ? '<span style="color:#1890ff;font-size:11px;">[新增]</span>' : '<span style="color:#fa8c16;font-size:11px;">[变更]</span>';
+                        html += '<div style="padding:3px 0;border-bottom:1px dotted #ffe7e5;">' + badge + ' ' + f.path + '</div>';
+                    });
+                    html += '</div>';
+                    $('#fileDiffList').html(html).show();
+                } else {
+                    $('#updateStatusText').html('<span style="color:#52c41a;font-weight:bold;">已是最新版本，所有文件均一致</span>');
+                    $('#btnDoUpdate').hide();
+                    $('#fileDiffList').hide();
+                }
+                $('#updateResult').html('本地版本: v' + check.local_version);
             },
-            error: function() {
-                $('#updateStatusText').html('<span style="color:#ff4d4f;">获取本地版本失败</span>');
+            error: function(xhr) {
+                var msg = '检测失败';
+                if (xhr.status === 0) msg = '请求超时，文件过多，请耐心等待';
+                $('#updateStatusText').html('<span style="color:#ff4d4f;">' + msg + '</span>');
+                $('#btnDoUpdate').hide();
+            },
+            complete: function() {
                 btn.prop('disabled', false).html('<i class="layui-icon">&#xe669;</i> 重新检测');
             }
         });
@@ -297,8 +277,20 @@
                 success: function(data) {
                     layer.close(loading);
                     if (data.code == 1) {
-                        $('#updateStatusText').html('<span style="color:#52c41a;font-weight:bold;">✓ 更新成功！已更新 ' + data.updated + ' 个文件</span>');
+                        $('#updateStatusText').html('<span style="color:#52c41a;font-weight:bold;">✓ 更新成功！替换了 ' + data.updated + ' 个文件</span>');
                         $('#updateResult').html('请刷新页面以应用更新。');
+                        
+                        if (data.changed_list && data.changed_list.length > 0) {
+                            var html = '<div style="border:1px solid #dcfce7;background:#f0fdf4;border-radius:6px;padding:10px;font-size:13px;margin-top:10px;">';
+                            html += '<div style="font-weight:bold;margin-bottom:8px;color:#52c41a;">已更新的文件：</div>';
+                            $.each(data.changed_list, function(i, f) {
+                                var badge = f.status === 'new' ? '<span style="color:#1890ff;font-size:11px;">[新增]</span>' : '<span style="color:#fa8c16;font-size:11px;">[变更]</span>';
+                                html += '<div style="padding:3px 0;border-bottom:1px dotted #d6e8ed;">' + badge + ' ' + f.path + '</div>';
+                            });
+                            html += '</div>';
+                            $('#fileDiffList').html(html).show();
+                        }
+                        
                         layer.alert('更新成功！已更新 ' + data.updated + ' 个文件。<br>请刷新页面以应用最新版本。', {icon: 1, title: '更新完成'});
                     } else {
                         $('#updateStatusText').html('<span style="color:#ff4d4f;">更新部分完成，' + data.errors + ' 个文件失败</span>');

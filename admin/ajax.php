@@ -467,22 +467,59 @@ switch ($_GET['mod']){
         die($i);
         break;
     case 'checkupdate':
-        // 通过 GitHub 比较版本
-        $localVer = str_replace('.','',$G['siteinfo']['ver']);
-        $needUpdate = false;
-        if (!empty($_POST['remote_sha'])){
-            $remoteCheck = @file_get_contents('https://raw.githubusercontent.com/AyMzz-dev/-/master/function/ver.inc.php');
-            if ($remoteCheck){
-                preg_match("/'ver'\s*=>\s*'([^']+)'/", $remoteCheck, $matches);
-                if (!empty($matches[1])){
-                    $remoteVer = str_replace('.','',$matches[1]);
-                    if (intval($remoteVer) > intval($localVer)){
-                        $needUpdate = true;
+        // 逐文件对比本地与远程
+        $result = array(
+            'need_update' => false,
+            'file_diff' => array(),
+            'local_version' => $G['siteinfo']['ver']
+        );
+        
+        $webRoot = dirname(dirname(__DIR__));
+        
+        function getRemoteFileTree2($githubApiUrl) {
+            $content = @file_get_contents($githubApiUrl);
+            if (!$content) return array();
+            $data = json_decode($content, true);
+            if (!is_array($data)) return array();
+            $files = array();
+            foreach ($data as $item) {
+                if ($item['type'] === 'tree') {
+                    $subFiles = getRemoteFileTree2($item['url']);
+                    $files = array_merge($files, $subFiles);
+                } elseif ($item['type'] === 'blob') {
+                    $path = ltrim($item['path'], '/');
+                    if (pathinfo($path, PATHINFO_EXTENSION) !== 'zip' && !in_array(basename($path), array('config.inc.php', 'install.php', '.gitignore', 'README.md', 'LICENSE', 'CHANGELOG', '部署清单.md', 'favicon.ico')) {
+                        if (!in_array(explode('/', $path)[0], array('.git', '.trae-cn', 'upload'))) {
+                            $files[] = $path;
+                        }
                     }
                 }
             }
+            return $files;
         }
-        die(json_encode(array('need_update'=>$needUpdate)));
+        
+        $remoteFiles = getRemoteFileTree2('https://api.github.com/repos/AyMzz-dev/-/git/trees/master?recursive=1');
+        
+        $changedFiles = array();
+        foreach ($remoteFiles as $file) {
+            $localPath = $webRoot . '/' . $file;
+            if (!file_exists($localPath)) {
+                $changedFiles[] = array('path' => $file, 'status' => 'new');
+                $result['need_update'] = true;
+                continue;
+            }
+            $remoteContent = @file_get_contents('https://raw.githubusercontent.com/AyMzz-dev/-/master/' . $file);
+            if ($remoteContent === false) continue;
+            $remoteMd5 = md5($remoteContent);
+            $localMd5 = md5_file($localPath);
+            if ($remoteMd5 !== $localMd5) {
+                $changedFiles[] = array('path' => $file, 'status' => 'changed');
+                $result['need_update'] = true;
+            }
+        }
+        
+        $result['file_diff'] = $changedFiles;
+        die(json_encode($result));
         break;
     case 'autoupdate':
         set_time_limit(0);
@@ -520,8 +557,9 @@ switch ($_GET['mod']){
         $excludeDirs = array('.git', '.trae-cn', 'upload');
         $updatedFiles = 0;
         $errors = 0;
+        $changedList = array();
         
-        function copyUpdateFiles2($src, $dst, $excludeFiles, $excludeDirs, &$updatedFiles, &$errors) {
+        function copyUpdateFiles2($src, $dst, $excludeFiles, $excludeDirs, &$updatedFiles, &$errors, &$changedList) {
             if (!is_dir($src)) return;
             if (!is_dir($dst)) @mkdir($dst, 0755, true);
             $dir = opendir($src);
@@ -531,13 +569,25 @@ switch ($_GET['mod']){
                 $srcPath = $src.'/'.$file;
                 $dstPath = $dst.'/'.$file;
                 if (is_dir($srcPath)) {
-                    copyUpdateFiles2($srcPath, $dstPath, $excludeFiles, $excludeDirs, $updatedFiles, $errors);
+                    copyUpdateFiles2($srcPath, $dstPath, $excludeFiles, $excludeDirs, $updatedFiles, $errors, $changedList);
                 } else {
                     if (in_array($file, $excludeFiles)) continue;
-                    if (@copy($srcPath, $dstPath)) {
-                        $updatedFiles++;
-                    } else {
-                        $errors++;
+                    $needCopy = true;
+                    $status = 'new';
+                    if (file_exists($dstPath)) {
+                        if (md5_file($srcPath) === md5_file($dstPath)) {
+                            $needCopy = false;
+                        } else {
+                            $status = 'changed';
+                        }
+                    }
+                    if ($needCopy) {
+                        if (@copy($srcPath, $dstPath)) {
+                            $updatedFiles++;
+                            $changedList[] = array('path' => str_replace(dirname(dirname(__DIR__)).'/', '', $dstPath), 'status' => $status);
+                        } else {
+                            $errors++;
+                        }
                     }
                 }
             }
@@ -545,7 +595,7 @@ switch ($_GET['mod']){
         }
         
         $webRoot = dirname(dirname(__DIR__));
-        copyUpdateFiles2($srcDir, $webRoot, $excludeFiles, $excludeDirs, $updatedFiles, $errors);
+        copyUpdateFiles2($srcDir, $webRoot, $excludeFiles, $excludeDirs, $updatedFiles, $errors, $changedList);
         
         function delTree2($dir) {
             if (!is_dir($dir)) return;
@@ -561,7 +611,8 @@ switch ($_GET['mod']){
             'code' => ($errors == 0) ? 1 : 0,
             'msg' => '更新完成！成功更新 '.$updatedFiles.' 个文件'.($errors > 0 ? '，'.$errors.' 个文件失败' : ''),
             'updated' => $updatedFiles,
-            'errors' => $errors
+            'errors' => $errors,
+            'changed_list' => $changedList
         )));
         break;
     case 'keylog':

@@ -74,6 +74,8 @@
                 <label>GitHub 仓库：</label>
                 <span><a href="https://github.com/AyMzz-dev/-" target="_blank" style="color:#1890ff;">AyMzz-dev/-</a></span>
             </div>
+            <div id="fileDiffList" style="display:none;margin-top:15px;max-height:300px;overflow-y:auto;"></div>
+        <div id="fileDiffList" style="display:none;margin-top:15px;max-height:300px;overflow-y:auto;"></div>
         </div>
 
         <!-- 远程版本 -->
@@ -145,8 +147,10 @@
 
     function checkUpdate() {
         var btn = $('#btnCheck');
-        btn.prop('disabled', true).html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 检测中...');
+        btn.prop('disabled', true).html('<i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 检查中...');
+        $('#fileDiffList').hide().html('');
 
+        // 获取GitHub提交记录
         $.ajax({
             url: 'https://api.github.com/repos/AyMzz-dev/-/commits?per_page=5',
             type: 'GET',
@@ -156,20 +160,16 @@
                 if (!data || data.length === 0) {
                     $('#remoteVer').text('获取失败');
                     $('#updateStatus').html('<span class="status-dot dot-red"></span>无法获取远程版本');
-                    $('#changelog pre').text('获取远程仓库信息失败，请检查仓库地址是否正确。');
+                    $('#changelog pre').text('获取远程仓库信息失败。');
                     return;
                 }
-
                 var latest = data[0];
-                var localVer = $('#localVer').text().replace('v', '');
                 var remoteSha = latest.sha.substring(0, 7);
                 var commitDate = new Date(latest.commit.author.date).toLocaleString('zh-CN');
-
                 $('#remoteVer').text(remoteSha);
                 $('#latestCommit').text(latest.commit.message.split('\n')[0]);
                 $('#commitTime').text(commitDate);
 
-                // 构建更新日志
                 var log = '';
                 for (var i = 0; i < data.length; i++) {
                     var d = new Date(data[i].commit.author.date).toLocaleString('zh-CN');
@@ -177,46 +177,53 @@
                     log += '  提交: ' + data[i].sha.substring(0, 7) + '\n\n';
                 }
                 $('#changelog pre').text(log);
-
-                // 检查是否需要更新（通过比较本地和远程的版本号）
-                checkVersionUpdate(localVer, remoteSha);
             },
             error: function(xhr) {
                 var msg = '网络请求失败';
-                if (xhr.status === 403) {
-                    msg = 'GitHub API 调用频率超限，请稍后再试（或前往仓库手动查看）';
-                } else if (xhr.status === 404) {
-                    msg = '仓库不存在或为私有仓库，请确认仓库地址';
-                }
+                if (xhr.status === 403) msg = 'GitHub API 调用频率超限';
+                else if (xhr.status === 404) msg = '仓库不存在或为私有仓库';
                 $('#remoteVer').text('获取失败');
-                $('#updateStatus').html('<span class="status-dot dot-red"></span>' + msg);
                 $('#changelog pre').text(msg);
             },
             complete: function() {
                 btn.prop('disabled', false).html('<i class="layui-icon">&#xe669;</i> 重新检测');
             }
         });
-    }
 
-    function checkVersionUpdate(localVer, remoteSha) {
+        // 逐文件对比
         $.ajax({
             url: '../ajax.php?mod=checkupdate',
             type: 'POST',
             dataType: 'json',
-            data: { 'remote_sha': remoteSha },
-            success: function(data) {
-                if (data.need_update) {
-                    $('#updateStatus').html('<span class="status-dot dot-red"></span><b style="color:#ff4d4f;">发现新版本，建议更新！</b>');
+            timeout: 120000,
+            success: function(check) {
+                if (check.need_update) {
+                    var count = check.file_diff.length;
+                    $('#updateStatus').html('<span class="status-dot dot-red"></span><b style="color:#ff4d4f;">发现 ' + count + ' 个文件需要更新</b>');
                     $('#btnDoUpdate').show();
+                    
+                    var html = '<div style="border:1px solid #ffccc7;background:#fff2f0;border-radius:6px;padding:10px;font-size:13px;">';
+                    html += '<div style="font-weight:bold;margin-bottom:8px;color:#ff4d4f;">需要更新的文件：</div>';
+                    $.each(check.file_diff, function(i, f) {
+                        var badge = f.status === 'new' ? '<span style="color:#1890ff;font-size:11px;">[新增]</span>' : '<span style="color:#fa8c16;font-size:11px;">[变更]</span>';
+                        html += '<div style="padding:3px 0;border-bottom:1px dotted #ffe7e5;">' + badge + ' ' + f.path + '</div>';
+                    });
+                    html += '</div>';
+                    $('#fileDiffList').html(html).show();
                 } else {
-                    $('#updateStatus').html('<span class="status-dot dot-green"></span><b style="color:#52c41a;">已是最新版本</b>');
+                    $('#updateStatus').html('<span class="status-dot dot-green"></span><b style="color:#52c41a;">已是最新版本，所有文件均一致</b>');
                     $('#btnDoUpdate').hide();
+                    $('#fileDiffList').hide();
                 }
             },
             error: function() {
-                $('#updateStatus').html('<span class="status-dot dot-blue"></span>请前往 GitHub 仓库手动检查更新');
+                $('#updateStatus').html('<span class="status-dot dot-blue"></span>文件对比超时，请前往 GitHub 仓库手动检查');
             }
         });
+    }
+
+    function checkVersionUpdate(localVer, remoteSha) {
+        // 已合并到 checkUpdate 中，此函数保留兼容
     }
 
     function doUpdate() {
@@ -240,7 +247,19 @@
                 success: function(data) {
                     layer.close(loading);
                     if (data.code == 1) {
-                        $('#updateStatus').html('<span class="status-dot dot-green"></span><b style="color:#52c41a;">✓ 更新成功！已更新 ' + data.updated + ' 个文件</b>');
+                        $('#updateStatus').html('<span class="status-dot dot-green"></span><b style="color:#52c41a;">✓ 更新成功！替换了 ' + data.updated + ' 个文件</b>');
+                        
+                        if (data.changed_list && data.changed_list.length > 0) {
+                            var html = '<div style="border:1px solid #dcfce7;background:#f0fdf4;border-radius:6px;padding:10px;font-size:13px;">';
+                            html += '<div style="font-weight:bold;margin-bottom:8px;color:#52c41a;">已更新的文件：</div>';
+                            $.each(data.changed_list, function(i, f) {
+                                var badge = f.status === 'new' ? '<span style="color:#1890ff;font-size:11px;">[新增]</span>' : '<span style="color:#fa8c16;font-size:11px;">[变更]</span>';
+                                html += '<div style="padding:3px 0;border-bottom:1px dotted #d6e8ed;">' + badge + ' ' + f.path + '</div>';
+                            });
+                            html += '</div>';
+                            $('#fileDiffList').html(html).show();
+                        }
+                        
                         layer.alert('更新成功！已更新 ' + data.updated + ' 个文件。<br>请刷新页面以应用最新版本。', {icon: 1, title: '更新完成'});
                     } else {
                         $('#updateStatus').html('<span class="status-dot dot-red"></span>更新部分完成，' + data.errors + ' 个文件失败');
