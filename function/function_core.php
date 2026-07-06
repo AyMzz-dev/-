@@ -76,16 +76,19 @@ $G['config']['yjtx'] = numtobool($G['config']['yjtx']);
 $G['config']['xtsy'] = numtobool($G['config']['xtsy']);
 $G['config']['epay_againcheck'] = numtobool($G['config']['epay_againcheck']);
 $G['sys']['rootdir'] = dirname(__DIR__);
-/*
-$_SESSION['auth']['checktime'] = 0;
+
+// ============================================
+// 云端授权验证
+// 客户端会尝试连接你的易语言服务端验证授权
+// 修改 $ServerDomain 为你的服务端地址
+// ============================================
+$_SESSION['auth']['checktime'] = empty($_SESSION['auth']['checktime']) ? 0 : $_SESSION['auth']['checktime'];
 if (empty($_SESSION['auth']['checktime']) || time() - $_SESSION['auth']['checktime'] > 3600) {
     if (isset($ServerDomain)) unset($ServerDomain);
-    $ServerDomain['1'] = 'https://new.api.shouquan.wenquan6.cn:99/api.php';
-    $ServerDomain['2'] = 'https://new.api.shouquan.wenquan.cleverqq.cn:99/api.php';
-    $ServerDomain['3'] = 'http://new.api.shouquan.wenquan6.cn:98/api.php';
-    $ServerDomain['4'] = 'http://new.api.shouquan.wenquan.cleverqq.cn:98/api.php';
-    $ServerDomain['5'] = 'http://api.shouquan.wenquan6.cn/api.php';
-    $ServerDomain['6'] = 'http://api.shouquan.wenquan.cleverqq.cn/api.php';
+    // 主服务端地址 — 改成你的易语言服务端 IP:端口
+    $ServerDomain['1'] = 'http://127.0.0.1:99/api.php';
+    // 备用服务端地址（可自行添加）
+    $ServerDomain['2'] = 'http://127.0.0.1:98/api.php';
 
     if (isset($ServerDomain[(string)$G['config']['sid']]) && (time() - $G['config']['stime']) < 86400){
         $auth = json_decode(curl_request($ServerDomain[$G['config']['sid']].'?mod=checkauth&domain=' . $_SERVER['HTTP_HOST'].'&sitekey='.$G['config']['sitekey']), true);
@@ -111,10 +114,9 @@ if (empty($_SESSION['auth']['checktime']) || time() - $_SESSION['auth']['checkti
 if ($auth['code'] == '1'){
     $_SESSION['auth']['checktime'] = time();
     $ServerURL = $ServerDomain[$G['config']['sid']];
+} else {
+    $ServerURL = $ServerDomain['1']; // 默认使用主服务端
 }
-*/
-
-$ServerURL = ''; // 云端授权服务已停用，使用本地授权
 include 'ver.inc.php';
 include_once 'MailTipsTemplate.php';
 /*
