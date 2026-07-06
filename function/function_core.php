@@ -85,10 +85,10 @@ $G['sys']['rootdir'] = dirname(__DIR__);
 $_SESSION['auth']['checktime'] = empty($_SESSION['auth']['checktime']) ? 0 : $_SESSION['auth']['checktime'];
 if (empty($_SESSION['auth']['checktime']) || time() - $_SESSION['auth']['checktime'] > 3600) {
     if (isset($ServerDomain)) unset($ServerDomain);
-    // 主服务端地址 — 改成你的易语言服务端 IP:端口
-    $ServerDomain['1'] = 'http://127.0.0.1:99/api.php';
-    // 备用服务端地址（可自行添加）
-    $ServerDomain['2'] = 'http://127.0.0.1:98/api.php';
+    // 主服务端地址 — 154.9.243.99:99
+    $ServerDomain['1'] = 'http://154.9.243.99:99/api.php';
+    // 备用地址（主站用9090，二级站用99）
+    $ServerDomain['2'] = 'http://154.9.243.99:9090/api.php';
 
     if (isset($ServerDomain[(string)$G['config']['sid']]) && (time() - $G['config']['stime']) < 86400){
         $auth = json_decode(curl_request($ServerDomain[$G['config']['sid']].'?mod=checkauth&domain=' . $_SERVER['HTTP_HOST'].'&sitekey='.$G['config']['sitekey']), true);
