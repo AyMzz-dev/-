@@ -75,47 +75,64 @@ $G['config']['kqxt'] = numtobool($G['config']['kqxt']);
 $G['config']['yjtx'] = numtobool($G['config']['yjtx']);
 $G['config']['xtsy'] = numtobool($G['config']['xtsy']);
 $G['config']['epay_againcheck'] = numtobool($G['config']['epay_againcheck']);
+
 $G['sys']['rootdir'] = dirname(__DIR__);
 
+// 本地测试环境：自动覆盖 sitekey
+if (in_array($_SERVER['HTTP_HOST'], array('localhost', '127.0.0.1'))) {
+    $G['config']['sitekey'] = '20b0d97ac4ca07a174641c35fb0e796894f68eca554eebf1f56949d0b7bbe30e';
+}
+
+// 未安装：跳转到安装页
+if (empty($G['config']['sitekey']) && !in_array(basename($_SERVER['SCRIPT_NAME']), array('install.php', 'ajax.php'))) {
+    header('Location: install.php');
+    exit;
+}
+
 // ============================================
-// 云端授权验证
-// 客户端会尝试连接你的易语言服务端验证授权
-// 修改 $ServerDomain 为你的服务端地址
+// 云端授权验证 — 每小时验证一次
+// 未授权直接阻断，不跳过
 // ============================================
 $_SESSION['auth']['checktime'] = empty($_SESSION['auth']['checktime']) ? 0 : $_SESSION['auth']['checktime'];
 if (empty($_SESSION['auth']['checktime']) || time() - $_SESSION['auth']['checktime'] > 3600) {
     if (isset($ServerDomain)) unset($ServerDomain);
-    // 主服务端地址 — 154.9.243.99:99
-    $ServerDomain['1'] = 'http://154.9.243.99:99/api.php';
-    // 备用地址（主站用9090，二级站用99）
-    $ServerDomain['2'] = 'http://154.9.243.99:9090/api.php';
-
-    if (isset($ServerDomain[(string)$G['config']['sid']]) && (time() - $G['config']['stime']) < 86400){
-        $auth = json_decode(curl_request($ServerDomain[$G['config']['sid']].'?mod=checkauth&domain=' . $_SERVER['HTTP_HOST'].'&sitekey='.$G['config']['sitekey']), true);
+    // 本地测试自动切换
+    if (in_array($_SERVER['HTTP_HOST'], array('localhost', '127.0.0.1'))) {
+        $ServerDomain['1'] = 'http://127.0.0.1:9090/api.php';
+    } else {
+        $ServerDomain['1'] = 'http://154.9.243.99:99/api.php';
+        $ServerDomain['2'] = 'http://154.9.243.99:9090/api.php';
     }
 
-    if (empty($auth['code'])) {
-        foreach ($ServerDomain as $key=>$value){
-            $auth = json_decode(curl_request($value.'?mod=checkauth&domain=' . $_SERVER['HTTP_HOST'].'&sitekey='.$G['config']['sitekey']), true);
-            if (!empty($auth['code'])){
-                updateset('sid',$key);
-                updateset('stime',time());
-                break;
+    if (!empty($G['config']['sitekey'])) {
+        if (isset($ServerDomain[(string)$G['config']['sid']]) && (time() - $G['config']['stime']) < 86400){
+            $auth = json_decode(curl_request($ServerDomain[$G['config']['sid']].'?mod=checkauth&domain=' . $_SERVER['HTTP_HOST'].'&sitekey='.$G['config']['sitekey']), true);
+        }
+
+        if (empty($auth['code'])) {
+            foreach ($ServerDomain as $key=>$value){
+                $auth = json_decode(curl_request($value.'?mod=checkauth&domain=' . $_SERVER['HTTP_HOST'].'&sitekey='.$G['config']['sitekey']), true);
+                if (!empty($auth['code'])){
+                    updateset('sid',$key);
+                    updateset('stime',time());
+                    break;
+                }
             }
         }
-    }
 
-    if ($auth['code'] == '-3') {
-        die($auth['tips']);
-    }
+        if ($auth['code'] == '-3') {
+            die('<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>授权已封禁</title></head><body style="text-align:center;padding-top:80px;font-family:sans-serif;background:#fff2f0;"><h1 style="color:#ff4d4f;">您的授权已被封禁</h1><p style="color:#666;">'.$auth['tips'].'</p></body></html>');
+        }
 
+        if ($auth['code'] != '1') {
+            die('<!DOCTYPE html><html lang="zh"><head><meta charset="UTF-8"><title>授权验证失败</title></head><body style="text-align:center;padding-top:80px;font-family:sans-serif;background:#fff2f0;"><h1 style="color:#ff4d4f;">授权验证失败</h1><p style="color:#666;">域名 '.$_SERVER['HTTP_HOST'].' 未获得授权，或授权服务端无法连接。</p><p style="color:#999;font-size:13px;">请联系管理员获取有效授权密钥。</p></body></html>');
+        }
+    }
 }
 
 if ($auth['code'] == '1'){
     $_SESSION['auth']['checktime'] = time();
     $ServerURL = $ServerDomain[$G['config']['sid']];
-} else {
-    $ServerURL = $ServerDomain['1']; // 默认使用主服务端
 }
 include 'ver.inc.php';
 include_once 'MailTipsTemplate.php';
@@ -349,7 +366,7 @@ function curl_request($url, $post = '', $cookie = '', $returnCookie = 0)
 
 
 /**
- * 调用邮件服务进行邮件发送
+ * 发送邮件
  */
 function sendemail($title, $contant, $tomail, &$msg = '', $debug = false)
 {

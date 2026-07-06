@@ -1079,7 +1079,7 @@ switch ($_GET['mod']){
                     $files = array_merge($files, $subFiles);
                 } elseif ($item['type'] === 'blob') {
                     $path = ltrim($item['path'], '/');
-                    if (pathinfo($path, PATHINFO_EXTENSION) !== 'zip' && !in_array(basename($path), array('config.inc.php', 'install.php', '.gitignore', 'README.md', 'LICENSE', 'CHANGELOG', '部署清单.md', 'favicon.ico'))) {
+                    if (pathinfo($path, PATHINFO_EXTENSION) !== 'zip' && !in_array(basename($path), array('config.inc.php', '.gitignore', 'README.md', 'LICENSE', 'CHANGELOG', '部署清单.md', 'favicon.ico'))) {
                         if (!in_array(explode('/', $path)[0], array('.git', '.trae-cn', 'upload'))) {
                             $files[] = $path;
                         }
@@ -1158,7 +1158,7 @@ switch ($_GET['mod']){
         }
         
         // 4. 递归复制文件（只替换实际变化的文件，排除敏感文件）
-        $excludeFiles = array('config.inc.php', 'install.php', '.gitignore', 'README.md', 'LICENSE', 'CHANGELOG', '部署清单.md');
+        $excludeFiles = array('config.inc.php', '.gitignore', 'README.md', 'LICENSE', 'CHANGELOG', '部署清单.md');
         $excludeDirs = array('.git', '.trae-cn', 'upload');
         $updatedFiles = 0;
         $errors = 0;
